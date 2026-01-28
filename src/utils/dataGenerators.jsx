@@ -450,6 +450,48 @@ export const generarResumenMensual = (pagos) => {
   return resumen;
 };
 
+// Generar abonos para una multa
+export const generarAbonosParaMulta = (multa) => {
+  if (multa.estado !== "Pendiente" || multa.abonosRealizados === 0) {
+    return [];
+  }
+
+  const seededRandom = (seed) => {
+    const x = Math.sin(seed) * 10000;
+    return x - Math.floor(x);
+  };
+
+  const abonos = [];
+  const totalAbonos = multa.abonosRealizados;
+  const numAbonos = 1 + Math.floor(seededRandom(multa.id * 100) * 3); // Entre 1 y 3 abonos
+  
+  let montoRestante = totalAbonos;
+  const fechaIngresoMulta = new Date(multa.fechaIngresoMulta);
+  
+  for (let i = 0; i < numAbonos; i++) {
+    const esUltimoAbono = i === numAbonos - 1;
+    const montoAbono = esUltimoAbono ? montoRestante : Math.round(montoRestante * (0.3 + seededRandom(multa.id * 100 + i) * 0.4));
+    
+    // Generar fecha de abono (después de la fecha de ingreso de multa)
+    const diasDespues = 5 + Math.floor(seededRandom(multa.id * 100 + i + 50) * (i + 1) * 10);
+    const fechaAbono = new Date(fechaIngresoMulta);
+    fechaAbono.setDate(fechaAbono.getDate() + diasDespues);
+    
+    abonos.push({
+      fecha: fechaAbono.toISOString().split('T')[0],
+      monto: montoAbono,
+      referencia: `ABONO-${multa.comprobante}-${(i + 1).toString().padStart(2, '0')}`
+    });
+    
+    montoRestante -= montoAbono;
+  }
+  
+  // Ordenar abonos por fecha
+  abonos.sort((a, b) => new Date(a.fecha) - new Date(b.fecha));
+  
+  return abonos;
+};
+
 // Generar notificaciones
 export const generarNotificaciones = () => {
   return [

@@ -204,7 +204,7 @@ const AccionistasTab = ({
                   {anios.map(anio => {
                     const multa = calcularMontoRealPorAnio(accionista.id, anio);
                     return (
-                      <td className="text-center">
+                      <td key={anio} className="text-center">
                         <div className="badge-aneupi">
                           <FaDollarSign className="text-xs" />
                           <span className="font-medium">${multa.toLocaleString()}</span>

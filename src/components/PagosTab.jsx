@@ -1,5 +1,8 @@
-import { FaCalendarWeek, FaCalendarDay, FaCalendarAlt, FaUser, FaEnvelope, FaMobileAlt, FaWindowClose, FaClipboardList, FaCheckCircle, FaClock, FaTimesCircle, FaCogs, FaEye, FaSortUp, FaSortDown, FaBell } from "react-icons/fa";
+import { FaCalendarWeek, FaCalendarDay, FaCalendarAlt, FaUser, FaEnvelope, FaMobileAlt, FaWindowClose, FaClipboardList, FaCheckCircle, FaClock, FaTimesCircle, FaCogs, FaEye, FaSortUp, FaSortDown, FaBell, FaDollarSign } from "react-icons/fa";
 import Paginacion from "./Paginacion";
+import AbonosModal from "./AbonosModal";
+import { generarAbonosParaMulta } from "../utils/dataGenerators";
+import { useState } from "react";
 
 const PagosTab = ({
   accionistaSeleccionado,
@@ -32,6 +35,13 @@ const PagosTab = ({
   totalItems,
   totalAccionistas
 }) => {
+  const [modalAbonos, setModalAbonos] = useState({ isOpen: false, multa: null, abonos: [] });
+
+  const handleVerAbonos = (pago) => {
+    const abonos = generarAbonosParaMulta(pago);
+    setModalAbonos({ isOpen: true, multa: pago, abonos });
+  };
+
   const renderEstado = (estado) => {
     switch(estado) {
       case "Completado": return <FaCheckCircle className="text-xs" />;
@@ -277,9 +287,12 @@ const PagosTab = ({
                 <div className="text-center p-3 bg-white/10 rounded-lg border-2 border-white/20">
                   <p className="text-xs text-white/60">Último Pago</p>
                   <p className="text-sm font-bold text-white">
-                    {pagosFiltrados.length > 0 
-                      ? pagosFiltrados[0]?.fechaPago 
-                      : 'N/A'}
+                    {(() => {
+                      const pagosCompletados = pagosFiltrados.filter(p => p.estado === "Completado" && p.fechaPago);
+                      if (pagosCompletados.length === 0) return 'N/A';
+                      const ultimoPago = pagosCompletados.sort((a, b) => new Date(b.fechaPago) - new Date(a.fechaPago))[0];
+                      return ultimoPago.fechaPago;
+                    })()}
                   </p>
                 </div>
                 <div className="text-center p-3 bg-white/10 rounded-lg border-2 border-white/20">
@@ -444,10 +457,15 @@ const PagosTab = ({
                     </span>
                     {pago.estado === "Pendiente" && pago.abonosRealizados > 0 && (
                       <div className="mt-1">
-                        <span className="text-xs text-aneupi-text-muted">Abonos realizados:</span>
-                        <span className="text-sm font-medium text-aneupi-primary block">
-                          ${pago.abonosRealizados.toLocaleString()}
-                        </span>
+                        <button
+                          onClick={() => handleVerAbonos(pago)}
+                          className="text-xs text-aneupi-primary hover:text-aneupi-primary-dark flex items-center gap-1 hover:underline"
+                        >
+                          <FaDollarSign className="text-xs" />
+                          Ver abonos
+                        </button>
+                        <span className="text-xs text-aneupi-text-muted block mt-1">Abonado: ${pago.abonosRealizados.toLocaleString()}</span>
+                        <span className="text-xs font-medium text-yellow-600 block">Saldo: ${(pago.monto - pago.abonosRealizados).toLocaleString()}</span>
                       </div>
                     )}
                   </div>
@@ -503,6 +521,13 @@ const PagosTab = ({
         itemsPaginaActual={obtenerPagosPaginaActual().length}
         calcularTotalMontosPaginaActual={calcularTotalMontosPaginaActual}
         calcularTotalPagosFiltrados={calcularTotalPagosFiltrados}
+      />
+
+      <AbonosModal
+        isOpen={modalAbonos.isOpen}
+        onClose={() => setModalAbonos({ isOpen: false, multa: null, abonos: [] })}
+        multa={modalAbonos.multa}
+        abonos={modalAbonos.abonos}
       />
     </>
   );

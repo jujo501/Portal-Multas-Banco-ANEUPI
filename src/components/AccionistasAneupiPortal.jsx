@@ -226,12 +226,18 @@ export default function AccionistasAneupiPortal() {
       filtered = filtered.filter(pago => pago.accionistaId === accionistaSeleccionado.id);
       // Aplicar filtro de año también cuando hay accionista seleccionado
       if (selectedYearPagos && selectedYearPagos !== "Todos") {
-        filtered = filtered.filter(pago => pago.fechaPago && pago.fechaPago.includes(selectedYearPagos));
+        filtered = filtered.filter(pago => {
+          // Usar fechaIngresoMulta para incluir pendientes
+          return pago.fechaIngresoMulta && pago.fechaIngresoMulta.includes(selectedYearPagos);
+        });
       }
     } else {
       // Filtrar por año
       if (selectedYearPagos && selectedYearPagos !== "Todos") {
-        filtered = filtered.filter(pago => pago.fechaPago && pago.fechaPago.includes(selectedYearPagos));
+        filtered = filtered.filter(pago => {
+          // Usar fechaIngresoMulta para incluir pendientes
+          return pago.fechaIngresoMulta && pago.fechaIngresoMulta.includes(selectedYearPagos);
+        });
       }
       // Filtrar por mes
       if (selectedMonth !== "Todos") filtered = filtered.filter(pago => pago.mes && pago.mes.includes(selectedMonth));
@@ -524,6 +530,8 @@ export default function AccionistasAneupiPortal() {
             resumenMensual={resumenMensual}
             estadisticasAvanzadas={estadisticasAvanzadas}
             totalAccionistas={accionistasData.length}
+            pagos={pagosDiariosData}
+            anios={anios}
           />
         )}
 

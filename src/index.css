@@ -6,31 +6,31 @@
 /* Sistema de Variables CSS Dinámicas - Portal ANEUPI */
 :root {
   /* Colores Principales */
-  --aneupi-primary: 0, 51, 95;           /* Azul marino principal */
-  --aneupi-primary-dark: 0, 41, 76;      /* Azul marino oscuro */
-  --aneupi-secondary: 148, 163, 184;     /* Gris plateado */
-  --aneupi-secondary-dark: 100, 116, 139; /* Gris plateado oscuro */
+  --aneupi-primary: #0c476b;           /* Azul marino principal */
+  --aneupi-primary-dark: #093651;      /* Azul marino oscuro */
+  --aneupi-secondary: #94a3b8;         /* Gris plateado */
+  --aneupi-secondary-dark: #64748b;    /* Gris plateado oscuro */
   
   /* Colores de Estado */
-  --aneupi-success: 34, 197, 94;         /* Verde éxito */
-  --aneupi-warning: 245, 158, 11;        /* Naranja advertencia */
-  --aneupi-error: 239, 68, 68;           /* Rojo error */
-  --aneupi-info: 59, 130, 246;           /* Azul información */
+  --aneupi-success: #22c55e;           /* Verde éxito */
+  --aneupi-warning: #f59e0b;           /* Naranja advertencia */
+  --aneupi-error: #ef4444;             /* Rojo error */
+  --aneupi-info: #3b82f6;              /* Azul información */
   
   /* Colores de Fondo */
-  --aneupi-bg-primary: 248, 250, 252;    /* Fondo principal */
-  --aneupi-bg-secondary: 255, 255, 255;  /* Fondo secundario */
-  --aneupi-bg-tertiary: 241, 245, 249;   /* Fondo terciario */
+  --aneupi-bg-primary: #f8fafc;        /* Fondo principal */
+  --aneupi-bg-secondary: #ffffff;      /* Fondo secundario */
+  --aneupi-bg-tertiary: #f1f5f9;       /* Fondo terciario */
   
   /* Colores de Texto */
-  --aneupi-text-primary: 15, 23, 42;     /* Texto principal */
-  --aneupi-text-secondary: 100, 116, 139; /* Texto secundario */
-  --aneupi-text-muted: 156, 163, 175;    /* Texto deshabilitado */
+  --aneupi-text-primary: #0f172a;      /* Texto principal */
+  --aneupi-text-secondary: #64748b;    /* Texto secundario */
+  --aneupi-text-muted: #9ca3af;        /* Texto deshabilitado */
   
   /* Colores de Borde */
-  --aneupi-border-light: 229, 231, 235;  /* Borde claro */
-  --aneupi-border-medium: 209, 213, 219; /* Borde medio */
-  --aneupi-border-dark: 107, 114, 128;   /* Borde oscuro */
+  --aneupi-border-light: #e5e7eb;      /* Borde claro */
+  --aneupi-border-medium: #d1d5db;     /* Borde medio */
+  --aneupi-border-dark: #6b7280;       /* Borde oscuro */
   
   /* Espaciado y Dimensiones */
   --aneupi-spacing-xs: 0.25rem;          /* 4px */
@@ -76,73 +76,73 @@
 /* Clases Utilitarias Dinámicas */
 @layer components {
   /* Colores de Fondo */
-  .bg-aneupi-primary { background-color: rgb(var(--aneupi-primary)); }
-  .bg-aneupi-primary-dark { background-color: rgb(var(--aneupi-primary-dark)); }
-  .bg-aneupi-secondary { background-color: rgb(var(--aneupi-secondary)); }
-  .bg-aneupi-secondary-dark { background-color: rgb(var(--aneupi-secondary-dark)); }
-  .bg-aneupi-success { background-color: rgb(var(--aneupi-success)); }
-  .bg-aneupi-warning { background-color: rgb(var(--aneupi-warning)); }
-  .bg-aneupi-error { background-color: rgb(var(--aneupi-error)); }
-  .bg-aneupi-info { background-color: rgb(var(--aneupi-info)); }
-  .bg-aneupi-bg-primary { background-color: rgb(var(--aneupi-bg-primary)); }
-  .bg-aneupi-bg-secondary { background-color: rgb(var(--aneupi-bg-secondary)); }
-  .bg-aneupi-bg-tertiary { background-color: rgb(var(--aneupi-bg-tertiary)); }
+  .bg-aneupi-primary { background-color: var(--aneupi-primary); }
+  .bg-aneupi-primary-dark { background-color: var(--aneupi-primary-dark); }
+  .bg-aneupi-secondary { background-color: var(--aneupi-secondary); }
+  .bg-aneupi-secondary-dark { background-color: var(--aneupi-secondary-dark); }
+  .bg-aneupi-success { background-color: var(--aneupi-success); }
+  .bg-aneupi-warning { background-color: var(--aneupi-warning); }
+  .bg-aneupi-error { background-color: var(--aneupi-error); }
+  .bg-aneupi-info { background-color: var(--aneupi-info); }
+  .bg-aneupi-bg-primary { background-color: var(--aneupi-bg-primary); }
+  .bg-aneupi-bg-secondary { background-color: var(--aneupi-bg-secondary); }
+  .bg-aneupi-bg-tertiary { background-color: var(--aneupi-bg-tertiary); }
   
   /* Colores de Texto */
-  .text-aneupi-primary { color: rgb(var(--aneupi-primary)); }
-  .text-aneupi-primary-dark { color: rgb(var(--aneupi-primary-dark)); }
-  .text-aneupi-secondary { color: rgb(var(--aneupi-secondary)); }
-  .text-aneupi-secondary-dark { color: rgb(var(--aneupi-secondary-dark)); }
-  .text-aneupi-success { color: rgb(var(--aneupi-success)); }
-  .text-aneupi-warning { color: rgb(var(--aneupi-warning)); }
-  .text-aneupi-error { color: rgb(var(--aneupi-error)); }
-  .text-aneupi-info { color: rgb(var(--aneupi-info)); }
-  .text-aneupi-text-primary { color: rgb(var(--aneupi-text-primary)); }
-  .text-aneupi-text-secondary { color: rgb(var(--aneupi-text-secondary)); }
-  .text-aneupi-text-muted { color: rgb(var(--aneupi-text-muted)); }
+  .text-aneupi-primary { color: var(--aneupi-primary); }
+  .text-aneupi-primary-dark { color: var(--aneupi-primary-dark); }
+  .text-aneupi-secondary { color: var(--aneupi-secondary); }
+  .text-aneupi-secondary-dark { color: var(--aneupi-secondary-dark); }
+  .text-aneupi-success { color: var(--aneupi-success); }
+  .text-aneupi-warning { color: var(--aneupi-warning); }
+  .text-aneupi-error { color: var(--aneupi-error); }
+  .text-aneupi-info { color: var(--aneupi-info); }
+  .text-aneupi-text-primary { color: var(--aneupi-text-primary); }
+  .text-aneupi-text-secondary { color: var(--aneupi-text-secondary); }
+  .text-aneupi-text-muted { color: var(--aneupi-text-muted); }
   
   /* Colores de Borde */
-  .border-aneupi-primary { border-color: rgb(var(--aneupi-primary)); }
-  .border-aneupi-secondary { border-color: rgb(var(--aneupi-secondary)); }
-  .border-aneupi-light { border-color: rgb(var(--aneupi-border-light)); }
-  .border-aneupi-medium { border-color: rgb(var(--aneupi-border-medium)); }
-  .border-aneupi-dark { border-color: rgb(var(--aneupi-border-dark)); }
+  .border-aneupi-primary { border-color: var(--aneupi-primary); }
+  .border-aneupi-secondary { border-color: var(--aneupi-secondary); }
+  .border-aneupi-light { border-color: var(--aneupi-border-light); }
+  .border-aneupi-medium { border-color: var(--aneupi-border-medium); }
+  .border-aneupi-dark { border-color: var(--aneupi-border-dark); }
   
   /* Botones */
   .btn-aneupi-primary {
-    background-color: rgb(var(--aneupi-primary));
+    background-color: var(--aneupi-primary);
     color: white;
     padding: var(--aneupi-spacing-sm) var(--aneupi-spacing-md);
     border-radius: var(--aneupi-radius-md);
     font-weight: var(--aneupi-font-weight-medium);
     transition: var(--aneupi-transition-fast);
-    border: 1px solid rgb(var(--aneupi-primary));
+    border: 1px solid var(--aneupi-primary);
   }
   .btn-aneupi-primary:hover {
-    background-color: rgb(var(--aneupi-primary-dark));
-    border-color: rgb(var(--aneupi-primary-dark));
+    background-color: var(--aneupi-primary-dark);
+    border-color: var(--aneupi-primary-dark);
   }
   
   .btn-aneupi-secondary {
-    background-color: rgb(var(--aneupi-secondary));
+    background-color: var(--aneupi-secondary);
     color: white;
     padding: var(--aneupi-spacing-sm) var(--aneupi-spacing-md);
     border-radius: var(--aneupi-radius-md);
     font-weight: var(--aneupi-font-weight-medium);
     transition: var(--aneupi-transition-fast);
-    border: 1px solid rgb(var(--aneupi-secondary));
+    border: 1px solid var(--aneupi-secondary);
   }
   .btn-aneupi-secondary:hover {
-    background-color: rgb(var(--aneupi-secondary-dark));
-    border-color: rgb(var(--aneupi-secondary-dark));
+    background-color: var(--aneupi-secondary-dark);
+    border-color: var(--aneupi-secondary-dark);
   }
   
   /* Tarjetas */
   .card-aneupi {
-    background-color: rgb(var(--aneupi-bg-secondary));
+    background-color: var(--aneupi-bg-secondary);
     border-radius: var(--aneupi-radius-xl);
     box-shadow: var(--aneupi-shadow-lg);
-    border: 1px solid rgb(var(--aneupi-border-light));
+    border: 1px solid var(--aneupi-border-light);
     padding: var(--aneupi-spacing-lg);
     transition: var(--aneupi-transition-normal);
   }
@@ -162,8 +162,8 @@
   }
   .input-aneupi:focus {
     outline: none;
-    border-color: rgb(var(--aneupi-secondary));
-    box-shadow: 0 0 0 2px rgba(var(--aneupi-secondary), 0.2);
+    border-color: var(--aneupi-secondary);
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--aneupi-secondary) 20%, transparent);
   }
   
   /* Badges */
@@ -172,10 +172,10 @@
     align-items: center;
     gap: var(--aneupi-spacing-xs);
     padding: var(--aneupi-spacing-xs) var(--aneupi-spacing-sm);
-    background-color: rgba(var(--aneupi-secondary), 0.2);
-    color: rgb(var(--aneupi-primary));
+    background-color: color-mix(in srgb, var(--aneupi-secondary) 20%, transparent);
+    color: var(--aneupi-primary);
     border-radius: 9999px;
-    border: 1px solid rgba(var(--aneupi-secondary), 0.5);
+    border: 1px solid color-mix(in srgb, var(--aneupi-secondary) 50%, transparent);
     font-size: var(--aneupi-font-size-xs);
     font-weight: var(--aneupi-font-weight-medium);
   }
@@ -186,51 +186,51 @@
     border-collapse: collapse;
   }
   .table-aneupi th {
-    background-color: rgb(var(--aneupi-bg-tertiary));
-    color: rgb(var(--aneupi-primary));
+    background-color: var(--aneupi-bg-tertiary);
+    color: var(--aneupi-primary);
     font-weight: var(--aneupi-font-weight-semibold);
     padding: var(--aneupi-spacing-md) var(--aneupi-spacing-lg);
-    border-bottom: 2px solid rgb(var(--aneupi-primary));
+    border-bottom: 2px solid var(--aneupi-primary);
     text-align: left;
   }
   .table-aneupi td {
     padding: var(--aneupi-spacing-md) var(--aneupi-spacing-lg);
-    border-bottom: 2px solid rgb(var(--aneupi-primary));
+    border-bottom: 2px solid var(--aneupi-primary);
   }
   .table-aneupi tr:hover {
-    background-color: rgb(var(--aneupi-bg-tertiary));
+    background-color: var(--aneupi-bg-tertiary);
   }
 }
 
 /* Temas Alternativos */
 .theme-dark {
-  --aneupi-bg-primary: 15, 23, 42;
-  --aneupi-bg-secondary: 30, 41, 59;
-  --aneupi-bg-tertiary: 51, 65, 85;
-  --aneupi-text-primary: 248, 250, 252;
-  --aneupi-text-secondary: 203, 213, 225;
-  --aneupi-border-light: 71, 85, 105;
+  --aneupi-bg-primary: #0f172a;
+  --aneupi-bg-secondary: #1e293b;
+  --aneupi-bg-tertiary: #334155;
+  --aneupi-text-primary: #f8fafc;
+  --aneupi-text-secondary: #cbd5e1;
+  --aneupi-border-light: #475569;
 }
 
 .theme-green {
-  --aneupi-primary: 5, 150, 105;
-  --aneupi-primary-dark: 4, 120, 87;
-  --aneupi-secondary: 34, 197, 94;
-  --aneupi-secondary-dark: 22, 163, 74;
+  --aneupi-primary: #059669;
+  --aneupi-primary-dark: #047857;
+  --aneupi-secondary: #22c55e;
+  --aneupi-secondary-dark: #16a34a;
 }
 
 .theme-purple {
-  --aneupi-primary: 124, 58, 237;
-  --aneupi-primary-dark: 109, 40, 217;
-  --aneupi-secondary: 147, 51, 234;
-  --aneupi-secondary-dark: 126, 34, 206;
+  --aneupi-primary: #7c3aed;
+  --aneupi-primary-dark: #6d28d9;
+  --aneupi-secondary: #9333ea;
+  --aneupi-secondary-dark: #7e22ce;
 }
 
 /* Estilos Existentes */
 .tablas {
   margin-top: 10px;
   border-radius: var(--aneupi-radius-xl);
-  border: solid 2px rgb(var(--aneupi-primary));
+  border: solid 2px var(--aneupi-primary);
   width: 100%;
   overflow-x: auto;
 }
