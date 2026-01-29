@@ -535,7 +535,7 @@ export default function AccionistasAneupiPortal() {
           />
         )}
 
-        {activeTab === "Reportes" && <ReportesTab totalAccionistas={accionistasData.length} />}
+        {activeTab === "Reportes" && <ReportesTab totalAccionistas={accionistasData.length} pagos={pagosDiariosData} accionistas={accionistasData} anios={anios} />}
       </div>
 
       {/* Información adicional */}
