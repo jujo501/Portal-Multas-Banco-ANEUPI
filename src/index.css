@@ -7,7 +7,7 @@
 :root {
   /* Colores Principales */
   --aneupi-primary: #0c476b;           /* Azul marino principal */
-  --aneupi-primary-dark: #093651;      /* Azul marino oscuro */
+  --aneupi-primary-dark: #0c476b;      /* Azul marino oscuro */
   --aneupi-secondary: #94a3b8;         /* Gris plateado */
   --aneupi-secondary-dark: #64748b;    /* Gris plateado oscuro */
   
@@ -316,6 +316,10 @@
 
 /* Aplicar las variables CSS a las clases de Tailwind */
 @layer base {
+  * {
+    font-family: Georgia, 'Times New Roman', serif;
+  }
+  
   :root {
     --background: var(--background);
     --foreground: var(--foreground);
