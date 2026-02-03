@@ -11,11 +11,11 @@ export class Accionista {
     codigo,
     fechaIngreso,
     direccion,
-    tipoAccionista,
+    tipoAccionista, //
     estado,
     notificacionesActivas,
     ultimoAcceso,
-    multaBase
+    multaBase//
   }) {
     this.id = id;
     this.nombre = nombre;
