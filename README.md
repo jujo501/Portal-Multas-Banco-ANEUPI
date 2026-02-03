@@ -1,16 +1,68 @@
-# React + Vite
+# Portal Multas Banco ANEUPI - Proyecto Completo
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Sistema integral de gestión de multas para accionistas del Banco ANEUPI.
 
-Currently, two official plugins are available:
+## Estructura del Proyecto
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+```
+Portal-Multas-Banco-ANEUPI-Full/
+├── frontend/          # Aplicación React + Vite
+│   ├── src/
+│   ├── public/
+│   ├── package.json
+│   └── ...
+└── backend/           # API Backend (preparado para desarrollo)
+    └── README.md
+```
 
-## React Compiler
+## Frontend
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+- **Tecnología**: React + Vite + Tailwind CSS
+- **Estado**: ✅ Completamente funcional
+- **Características**:
+  - Sistema de gestión de accionistas
+  - Control de pagos y multas
+  - Generación de reportes (PDF, Excel, CSV)
+  - Estadísticas avanzadas con gráficos
+  - Interfaz responsive con fuente Georgia
 
-## Expanding the ESLint configuration
+## Backend
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+- **Estado**: 🚧 Preparado para desarrollo
+- **Ubicación**: `./backend/`
+
+## Instalación y Uso
+
+### Frontend
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+### Backend
+```bash
+cd backend
+# Pendiente de implementación
+```
+
+## Funcionalidades Principales
+
+1. **Gestión de Accionistas**: 20 accionistas con datos completos
+2. **Control de Pagos**: Estados completado/pendiente con abonos
+3. **Reportes Avanzados**: 4 tipos de reportes con filtros
+4. **Estadísticas**: Gráficos interactivos y métricas
+5. **Interfaz Profesional**: Diseño ANEUPI con fuente Georgia
+
+## Tecnologías
+
+- React 19.2.4
+- Vite
+- Tailwind CSS
+- Recharts (gráficos)
+- jsPDF (reportes PDF)
+- React Icons
+
+---
+
+**Banco ANEUPI** - Sistema de Gestión de Multas v4.0.0
