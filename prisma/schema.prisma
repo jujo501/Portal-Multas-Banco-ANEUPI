@@ -1,0 +1,154 @@
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// --------------------------------------
+// ENUMS
+// --------------------------------------
+
+enum TipoAccionista {
+  Fundador
+  Inversionista
+  Accionista_Mayoritario @map("Accionista Mayoritario")
+  Accionista_Minoritario @map("Accionista Minoritario")
+}
+
+enum EstadoAccionista {
+  Activo
+  Suspendido
+  Inactivo
+}
+
+enum EstadoPago {
+  Completado
+  Pendiente
+  Rechazado
+  En_proceso @map("En proceso")
+}
+
+enum PrioridadNotificacion {
+  alta
+  media
+  baja
+}
+
+enum TipoNotificacion {
+  pago_pendiente
+  recordatorio
+  alerta
+  informacion
+}
+
+// --------------------------------------
+// MODELOS
+// --------------------------------------
+
+model Accionista {
+  id                    Int              @id @default(autoincrement())
+  nombre                String
+  telefono              String?
+  email                 String           @unique
+  codigo                String           @unique
+  fechaIngreso          DateTime         @default(now())
+  direccion             String?
+  tipoAccionista        TipoAccionista
+  estado                EstadoAccionista @default(Activo)
+  notificacionesActivas Boolean          @default(true)
+  
+  // Campo para consulta rápida (última vez que entró)
+  ultimoAcceso          DateTime?
+  
+  // Se usa Decimal para precisión monetaria exacta
+  multaBase             Decimal          @db.Decimal(10, 2) 
+
+  // Relaciones
+  pagos          Pago[]
+  notificaciones Notificacion[]
+  auditorias     Auditoria[]
+
+  @@map("accionistas")
+}
+
+model Pago {
+  id                Int        @id @default(autoincrement())
+  referencia        String     @unique 
+  
+  accionistaId      Int
+  accionista        Accionista @relation(fields: [accionistaId], references: [id])
+
+  mes               String?
+  dia               Int?
+  monto             Decimal    @db.Decimal(10, 2)
+  fechaIngresoMulta DateTime   @default(now())
+  fechaPago         DateTime?
+  horaPago          String?
+  
+  estado            EstadoPago @default(Pendiente)
+  metodo            String?
+  descripcion       String?
+  observacion       String?
+  comprobante       String?    
+  canal             String?
+  
+  // Datos de contacto al momento del pago
+  email             String?
+  telefono          String?
+  
+  fechaRegistro     DateTime   @default(now())
+  usuarioRegistro   String?
+
+  abonos            Abono[]
+
+  @@map("pagos")
+}
+
+model Abono {
+  id         Int      @id @default(autoincrement())
+  fecha      DateTime @default(now())
+  monto      Decimal  @db.Decimal(10, 2)
+  referencia String?
+  
+  pagoId     Int
+  // Cascade: Si se borra el pago, se borran sus abonos
+  pago       Pago     @relation(fields: [pagoId], references: [id], onDelete: Cascade) 
+
+  @@map("abonos")
+}
+
+model Notificacion {
+  id           Int                   @id @default(autoincrement())
+  
+  accionistaId Int
+  accionista   Accionista            @relation(fields: [accionistaId], references: [id])
+
+  tipo         TipoNotificacion
+  titulo       String
+  mensaje      String                @db.Text // Permite textos largos sin límite de varchar
+  fecha        DateTime              @default(now())
+  leida        Boolean               @default(false)
+  accion       String?
+  prioridad    PrioridadNotificacion @default(media)
+
+  @@map("notificaciones")
+}
+
+// Nueva tabla para historial de seguridad
+model Auditoria {
+  id           Int      @id @default(autoincrement())
+  fecha        DateTime @default(now())
+  accion       String   // Ej: "LOGIN", "CAMBIO_CLAVE"
+  detalle      String?  // Ej: "IP: 192.168.1.1"
+  usuario      String?  // Usuario que ejecutó la acción (si aplica)
+  
+  // Opcional: Relación con el accionista si la acción la hizo él
+  accionistaId Int?     
+  accionista   Accionista? @relation(fields: [accionistaId], references: [id])
+
+  @@map("auditorias")
+}
