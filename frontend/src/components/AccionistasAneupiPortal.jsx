@@ -7,10 +7,9 @@ import EstadisticasTab from "./EstadisticasTab";
 import ReportesTab from "./ReportesTab";
 import FiltrosAvanzados from "./FiltrosAvanzados";
 import LoadingSpinner from "./LoadingSpinner";
+import { accionistasService, pagosService } from "../services";
 import { 
-  generarAccionistas, 
   generarMultasPorAnio, 
-  generarPagosDiarios, 
   generarResumenMensual, 
   generarNotificaciones,
   meses,
@@ -22,7 +21,9 @@ import { FaUser, FaDollarSign, FaClock, FaCalendarAlt, FaUniversity, FaBell, FaE
 
 export default function AccionistasAneupiPortal() {
   // Estados principales
-  const [activeTab, setActiveTab] = useState("Accionistas");
+  const [activeTab, setActiveTab] = useState(() => {
+    return localStorage.getItem('activeTab') || 'Accionistas';
+  });
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedYear, setSelectedYear] = useState("Todos");
   const [selectedYearPagos, setSelectedYearPagos] = useState("Todos");
@@ -98,37 +99,53 @@ export default function AccionistasAneupiPortal() {
 
   const dias = obtenerDiasDelMes();
 
+  // Persistir activeTab en localStorage
+  useEffect(() => {
+    localStorage.setItem('activeTab', activeTab);
+  }, [activeTab]);
+
   // Inicializar datos
   useEffect(() => {
-    setIsLoading(true);
+    const cargarDatos = async () => {
+      setIsLoading(true);
+      
+      try {
+        const [accionistasRes, pagosRes] = await Promise.all([
+          accionistasService.getAll(),
+          pagosService.getAll()
+        ]);
+        
+        if (accionistasRes.success) {
+          setAccionistasData(accionistasRes.data);
+          setFilteredAccionistas(accionistasRes.data);
+          
+          const mapa = {};
+          accionistasRes.data.forEach(accionista => {
+            mapa[accionista.id] = accionista;
+          });
+          setMapaAccionistas(mapa);
+          
+          const multasGeneradas = generarMultasPorAnio(accionistasRes.data);
+          setMultasPorAnio(multasGeneradas);
+          calcularEstadisticasAvanzadas(multasGeneradas, accionistasRes.data);
+        }
+        
+        if (pagosRes.success) {
+          setPagosDiariosData(pagosRes.data);
+          const resumenGenerado = generarResumenMensual(pagosRes.data);
+          setResumenMensual(resumenGenerado);
+        }
+        
+        const notificacionesIniciales = generarNotificaciones();
+        setNotificaciones(notificacionesIniciales);
+      } catch (error) {
+        console.error('Error cargando datos:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
     
-    setTimeout(() => {
-      const accionistasGenerados = generarAccionistas();
-      setAccionistasData(accionistasGenerados);
-      setFilteredAccionistas(accionistasGenerados);
-      
-      const mapa = {};
-      accionistasGenerados.forEach(accionista => {
-        mapa[accionista.id] = accionista;
-      });
-      setMapaAccionistas(mapa);
-      
-      const multasGeneradas = generarMultasPorAnio(accionistasGenerados);
-      setMultasPorAnio(multasGeneradas);
-      
-      const pagosGenerados = generarPagosDiarios(accionistasGenerados);
-      setPagosDiariosData(pagosGenerados);
-      
-      const resumenGenerado = generarResumenMensual(pagosGenerados);
-      setResumenMensual(resumenGenerado);
-      
-      const notificacionesIniciales = generarNotificaciones();
-      setNotificaciones(notificacionesIniciales);
-      
-      calcularEstadisticasAvanzadas(multasGeneradas, accionistasGenerados);
-      
-      setIsLoading(false);
-    }, 1000);
+    cargarDatos();
   }, []);
 
   // Calcular estadísticas avanzadas

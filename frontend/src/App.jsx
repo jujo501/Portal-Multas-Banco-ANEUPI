@@ -23,12 +23,9 @@ export default function App() {
     <div className="min-h-screen">
       <Toaster richColors />
 
-      {/* Si NO está logueado → mostrar login */}
       {!userRole ? (
-        //<LoginScreen onLogin={handleLogin} />
-        <AccionistasAneupiPortal onLogout={handleLogout} />
+        <LoginScreen onLogin={handleLogin} />
       ) : (
-        // ⭐ Si está logueado → enviar al componente AccionistasAneupiPortal
         <AccionistasAneupiPortal onLogout={handleLogout} />
       )}
     </div>

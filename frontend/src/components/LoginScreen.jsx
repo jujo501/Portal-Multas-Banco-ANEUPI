@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { FaDollarSign, FaLock, FaEnvelope, FaUser, FaChartLine, FaShieldAlt } from "react-icons/fa";
+import { FaUniversity, FaLock, FaEnvelope, FaUser, FaCheckCircle, FaShieldAlt } from "react-icons/fa";
 import { toast } from "sonner";
 
 export function LoginScreen({ onLogin }) {
@@ -88,83 +88,117 @@ export function LoginScreen({ onLogin }) {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50 flex items-center justify-center p-4">
-      <div className="w-full max-w-6xl grid md:grid-cols-2 gap-8 md:gap-12 items-center">
-        {/* Columna izquierda - Imagen y descripción */}
-        <div className="hidden md:flex flex-col items-center justify-center">
-          <div className="mb-8">
-            <div className="p-8 rounded-3xl shadow-2xl bg-gradient-to-br from-blue-600 to-blue-800 hover:shadow-3xl transition-all duration-300 transform hover:-translate-y-1">
-              <FaDollarSign className="text-6xl text-white" />
-            </div>
-          </div>
-          
-          <div className="text-center mb-8">
-            <h1 className="text-4xl font-bold text-gray-800 mb-4 tracking-tight">
-              Sistema de Gestión Financiera
-            </h1>
-            <div className="w-24 h-1 bg-blue-600 mx-auto mb-6 rounded-full"></div>
-            <p className="text-lg text-gray-600 max-w-md leading-relaxed">
-              Controla tus multas bancarias, ingresos y egresos desde una plataforma segura y profesional
-            </p>
+    <div className="min-h-screen bg-gradient-to-br from-aneupi-bg-tertiary via-white to-aneupi-bg-tertiary flex items-center justify-center p-4">
+      <div className="w-full max-w-7xl grid lg:grid-cols-5 gap-0 items-stretch">
+        
+        {/* Panel izquierdo - Branding */}
+        <div className="hidden lg:flex lg:col-span-2 bg-gradient-to-br from-aneupi-primary via-aneupi-primary-dark to-aneupi-primary flex-col justify-between p-12 rounded-l-3xl shadow-2xl relative overflow-hidden">
+          {/* Patrón de fondo */}
+          <div className="absolute inset-0 opacity-10">
+            <div className="absolute top-0 left-0 w-64 h-64 bg-white rounded-full -translate-x-1/2 -translate-y-1/2"></div>
+            <div className="absolute bottom-0 right-0 w-96 h-96 bg-white rounded-full translate-x-1/3 translate-y-1/3"></div>
           </div>
 
-          <div className="grid grid-cols-2 gap-6 mt-6">
-            <div className="flex items-center gap-3">
-              <div className="p-3 bg-blue-100 rounded-lg">
-                <FaChartLine className="text-blue-600 text-xl" />
+          <div className="relative z-10">
+            <div className="flex items-center gap-4 mb-12">
+              <div className="p-4 bg-white/20 backdrop-blur-sm rounded-2xl border border-white/30">
+                <FaUniversity className="text-5xl text-white" />
               </div>
-              <span className="text-gray-700">Análisis en tiempo real</span>
-            </div>
-            <div className="flex items-center gap-3">
-              <div className="p-3 bg-green-100 rounded-lg">
-                <FaShieldAlt className="text-green-600 text-xl" />
+              <div>
+                <h1 className="text-3xl font-bold text-white">Banco ANEUPI</h1>
+                <p className="text-white/80 text-sm">Portal de Accionistas</p>
               </div>
-              <span className="text-gray-700">Protección de datos</span>
             </div>
+
+            <div className="space-y-8">
+              <div>
+                <h2 className="text-4xl font-bold text-white mb-4 leading-tight">
+                  Sistema de Gestión<br />de Multas
+                </h2>
+                <p className="text-white/90 text-lg leading-relaxed">
+                  Plataforma integral para el control y seguimiento de multas aplicadas a los accionistas del Banco ANEUPI
+                </p>
+              </div>
+
+              <div className="space-y-4 pt-8">
+                <div className="flex items-start gap-3">
+                  <FaCheckCircle className="text-white text-xl mt-1 flex-shrink-0" />
+                  <div>
+                    <h3 className="text-white font-semibold mb-1">Gestión Centralizada</h3>
+                    <p className="text-white/80 text-sm">Control total de multas y pagos en tiempo real</p>
+                  </div>
+                </div>
+                <div className="flex items-start gap-3">
+                  <FaCheckCircle className="text-white text-xl mt-1 flex-shrink-0" />
+                  <div>
+                    <h3 className="text-white font-semibold mb-1">Reportes Avanzados</h3>
+                    <p className="text-white/80 text-sm">Generación de reportes en PDF, Excel y CSV</p>
+                  </div>
+                </div>
+                <div className="flex items-start gap-3">
+                  <FaCheckCircle className="text-white text-xl mt-1 flex-shrink-0" />
+                  <div>
+                    <h3 className="text-white font-semibold mb-1">Seguridad Garantizada</h3>
+                    <p className="text-white/80 text-sm">Protección de datos con estándares bancarios</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="relative z-10 text-white/60 text-sm">
+            © 2024 Banco ANEUPI. Todos los derechos reservados.
           </div>
         </div>
 
-        {/* Columna derecha - Formulario */}
-        <div className="w-full max-w-md mx-auto">
-          {/* Header para móvil */}
-          <div className="text-center mb-8 md:hidden">
-            <div className="flex justify-center mb-4">
-              <div className="p-5 rounded-2xl shadow-xl bg-gradient-to-br from-blue-600 to-blue-800">
-                <FaDollarSign className="text-3xl text-white" />
+        {/* Panel derecho - Formulario */}
+        <div className="lg:col-span-3 bg-white p-8 md:p-12 lg:p-16 rounded-3xl lg:rounded-l-none shadow-2xl flex items-center">
+          <div className="w-full max-w-md mx-auto">
+            
+            {/* Logo móvil */}
+            <div className="lg:hidden text-center mb-8">
+              <div className="inline-flex items-center gap-3 mb-4">
+                <div className="p-3 bg-aneupi-primary rounded-xl">
+                  <FaUniversity className="text-2xl text-white" />
+                </div>
+                <div className="text-left">
+                  <h1 className="text-2xl font-bold text-aneupi-text-primary">Banco ANEUPI</h1>
+                  <p className="text-sm text-aneupi-text-muted">Portal de Accionistas</p>
+                </div>
               </div>
             </div>
-            <h1 className="text-2xl font-bold text-gray-800 mb-2">Sistema Financiero</h1>
-          </div>
 
-          {/* Tarjeta del formulario */}
-          <div className="bg-white rounded-2xl shadow-xl p-8 border border-gray-100">
-            <div className="mb-8">
-              <h2 className="text-2xl font-bold text-gray-800 mb-3">
-                {isForgotPassword ? "Recuperar contraseña" : (isLogin ? "Bienvenido de nuevo" : "Crear cuenta nueva")}
+            {/* Encabezado del formulario */}
+            <div className="mb-10">
+              <h2 className="text-3xl font-bold text-aneupi-text-primary mb-3">
+                {isForgotPassword ? "Recuperar Contraseña" : (isLogin ? "Iniciar Sesión" : "Crear Cuenta")}
               </h2>
-              <p className="text-gray-600">
+              <p className="text-aneupi-text-secondary">
                 {isForgotPassword 
-                  ? "Ingresa tu correo electrónico y te enviaremos un enlace para restablecer tu contraseña"
+                  ? "Ingresa tu correo para recibir instrucciones de recuperación"
                   : (isLogin 
-                    ? "Accede a tu cuenta para gestionar multas y transacciones" 
-                    : "Regístrate para comenzar a gestionar tus finanzas")}
+                    ? "Accede al portal de gestión de multas" 
+                    : "Regístrate para acceder al sistema")}
               </p>
             </div>
 
-            {/* Formulario de olvidar contraseña */}
+            {/* Formularios */}
             {isForgotPassword ? (
               <form onSubmit={handleForgotPassword} className="space-y-6">
-                <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-aneupi-text-secondary mb-2">
+                    Correo Electrónico
+                  </label>
                   <div className="relative">
-                    <div className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400">
-                      <FaEnvelope className="text-lg" />
+                    <div className="absolute left-4 top-1/2 transform -translate-y-1/2 text-aneupi-text-muted">
+                      <FaEnvelope />
                     </div>
                     <input
                       type="email"
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
-                      placeholder="Correo electrónico"
-                      className="w-full h-12 pl-12 pr-4 text-gray-700 bg-gray-50 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all placeholder:text-gray-400"
+                      placeholder="correo@ejemplo.com"
+                      className="w-full h-14 pl-12 pr-4 text-aneupi-text-primary bg-aneupi-bg-tertiary border-2 border-aneupi-border-light rounded-xl focus:outline-none focus:ring-2 focus:ring-aneupi-primary focus:border-aneupi-primary transition-all placeholder:text-aneupi-text-muted"
                       required
                       disabled={isLoading}
                     />
@@ -173,78 +207,89 @@ export function LoginScreen({ onLogin }) {
 
                 <button
                   type="submit"
-                  className="w-full h-12 bg-gradient-to-r from-blue-600 to-blue-700 text-white font-medium rounded-xl hover:from-blue-700 hover:to-blue-800 transition-all shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed mt-6"
+                  className="w-full h-14 bg-aneupi-primary text-white font-semibold rounded-xl hover:bg-aneupi-primary-dark transition-all shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed transform hover:-translate-y-0.5"
                   disabled={isLoading}
                 >
-                  {isLoading ? "Enviando..." : "Enviar enlace de recuperación"}
+                  {isLoading ? "Enviando..." : "Enviar Enlace de Recuperación"}
                 </button>
 
-                <div className="text-center pt-4">
-                  <button
-                    type="button"
-                    className="text-blue-600 hover:text-blue-800 hover:underline text-sm font-medium transition-colors"
-                    onClick={backToLogin}
-                  >
-                    ← Volver al inicio de sesión
-                  </button>
-                </div>
+                <button
+                  type="button"
+                  className="w-full text-aneupi-primary hover:text-aneupi-primary-dark font-medium transition-colors"
+                  onClick={backToLogin}
+                >
+                  ← Volver al inicio de sesión
+                </button>
               </form>
             ) : (
               <form onSubmit={handleSubmit} className="space-y-6">
-                <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-aneupi-text-secondary mb-2">
+                    {isLogin ? "Correo o Celular" : "Correo Electrónico"}
+                  </label>
                   <div className="relative">
-                    <div className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400">
-                      {isLogin ? <FaEnvelope className="text-lg" /> : <FaUser className="text-lg" />}
+                    <div className="absolute left-4 top-1/2 transform -translate-y-1/2 text-aneupi-text-muted">
+                      {isLogin ? <FaEnvelope /> : <FaUser />}
                     </div>
                     <input
                       type="text"
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
-                      placeholder="Correo electrónico o número de celular"
-                      className="w-full h-12 pl-12 pr-4 text-gray-700 bg-gray-50 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all placeholder:text-gray-400"
+                      placeholder={isLogin ? "correo@ejemplo.com o celular" : "correo@ejemplo.com"}
+                      className="w-full h-14 pl-12 pr-4 text-aneupi-text-primary bg-aneupi-bg-tertiary border-2 border-aneupi-border-light rounded-xl focus:outline-none focus:ring-2 focus:ring-aneupi-primary focus:border-aneupi-primary transition-all placeholder:text-aneupi-text-muted"
                       required
                       disabled={isLoading}
                     />
                   </div>
+                </div>
 
+                <div>
+                  <label className="block text-sm font-medium text-aneupi-text-secondary mb-2">
+                    Contraseña
+                  </label>
                   <div className="relative">
-                    <div className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400">
-                      <FaLock className="text-lg" />
+                    <div className="absolute left-4 top-1/2 transform -translate-y-1/2 text-aneupi-text-muted">
+                      <FaLock />
                     </div>
                     <input
                       type="password"
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
-                      placeholder="Contraseña"
-                      className="w-full h-12 pl-12 pr-4 text-gray-700 bg-gray-50 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all placeholder:text-gray-400"
+                      placeholder="••••••••"
+                      className="w-full h-14 pl-12 pr-4 text-aneupi-text-primary bg-aneupi-bg-tertiary border-2 border-aneupi-border-light rounded-xl focus:outline-none focus:ring-2 focus:ring-aneupi-primary focus:border-aneupi-primary transition-all placeholder:text-aneupi-text-muted"
                       required
                       disabled={isLoading}
                     />
                   </div>
+                </div>
 
-                  {!isLogin && (
+                {!isLogin && (
+                  <div>
+                    <label className="block text-sm font-medium text-aneupi-text-secondary mb-2">
+                      Confirmar Contraseña
+                    </label>
                     <div className="relative">
-                      <div className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400">
-                        <FaLock className="text-lg" />
+                      <div className="absolute left-4 top-1/2 transform -translate-y-1/2 text-aneupi-text-muted">
+                        <FaLock />
                       </div>
                       <input
                         type="password"
                         value={confirmPassword}
                         onChange={(e) => setConfirmPassword(e.target.value)}
-                        placeholder="Confirmar contraseña"
-                        className="w-full h-12 pl-12 pr-4 text-gray-700 bg-gray-50 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all placeholder:text-gray-400"
+                        placeholder="••••••••"
+                        className="w-full h-14 pl-12 pr-4 text-aneupi-text-primary bg-aneupi-bg-tertiary border-2 border-aneupi-border-light rounded-xl focus:outline-none focus:ring-2 focus:ring-aneupi-primary focus:border-aneupi-primary transition-all placeholder:text-aneupi-text-muted"
                         required
                         disabled={isLoading}
                       />
                     </div>
-                  )}
-                </div>
+                  </div>
+                )}
 
                 {isLogin && (
                   <div className="flex justify-end">
                     <button
                       type="button"
-                      className="text-blue-600 hover:text-blue-800 hover:underline text-sm font-medium transition-colors"
+                      className="text-aneupi-primary hover:text-aneupi-primary-dark font-medium text-sm transition-colors"
                       onClick={showForgotPassword}
                     >
                       ¿Olvidaste tu contraseña?
@@ -254,42 +299,41 @@ export function LoginScreen({ onLogin }) {
 
                 <button
                   type="submit"
-                  className="w-full h-12 bg-gradient-to-r from-blue-600 to-blue-700 text-white font-medium rounded-xl hover:from-blue-700 hover:to-blue-800 transition-all shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="w-full h-14 bg-aneupi-primary text-white font-semibold rounded-xl hover:bg-aneupi-primary-dark transition-all shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed transform hover:-translate-y-0.5"
                   disabled={isLoading}
                 >
                   {isLoading 
                     ? (isLogin ? "Iniciando sesión..." : "Registrando...") 
-                    : (isLogin ? "Iniciar sesión" : "Registrarse")}
+                    : (isLogin ? "Iniciar Sesión" : "Crear Cuenta")}
                 </button>
 
-                <div className="text-center pt-4">
-                  <button
-                    type="button"
-                    className="text-blue-600 hover:text-blue-800 hover:underline text-sm font-medium transition-colors"
-                    onClick={toggleMode}
-                  >
-                    {isLogin 
-                      ? "¿No tienes cuenta? Regístrate aquí" 
-                      : "¿Ya tienes cuenta? Inicia sesión"}
-                  </button>
+                <div className="relative">
+                  <div className="absolute inset-0 flex items-center">
+                    <div className="w-full border-t border-aneupi-border-light"></div>
+                  </div>
+                  <div className="relative flex justify-center text-sm">
+                    <span className="px-4 bg-white text-aneupi-text-muted">
+                      {isLogin ? "¿No tienes cuenta?" : "¿Ya tienes cuenta?"}
+                    </span>
+                  </div>
                 </div>
+
+                <button
+                  type="button"
+                  className="w-full h-14 bg-white text-aneupi-primary font-semibold rounded-xl border-2 border-aneupi-primary hover:bg-aneupi-bg-tertiary transition-all"
+                  onClick={toggleMode}
+                >
+                  {isLogin ? "Crear Nueva Cuenta" : "Iniciar Sesión"}
+                </button>
               </form>
             )}
-          </div>
 
-          {/* Footer */}
-          <div className="mt-8 text-center space-y-4">
-            <div className="flex items-center justify-center gap-3 text-gray-500 text-sm">
-              <div className="w-4 h-0.5 bg-gray-300"></div>
-              <span>Plataforma de Gestión de Multas y Transacciones</span>
-              <div className="w-4 h-0.5 bg-gray-300"></div>
-            </div>
-            
-            <div className="flex items-center justify-center gap-2 md:hidden">
-              <div className="p-2 rounded-lg bg-gradient-to-br from-blue-600 to-blue-800">
-                <FaDollarSign className="text-lg text-white" />
+            {/* Footer */}
+            <div className="mt-10 pt-8 border-t border-aneupi-border-light">
+              <div className="flex items-center justify-center gap-2 text-aneupi-text-muted text-sm">
+                <FaShieldAlt className="text-aneupi-primary" />
+                <span>Conexión segura y encriptada</span>
               </div>
-              <span className="text-gray-700 font-medium">Sistema Financiero</span>
             </div>
           </div>
         </div>
