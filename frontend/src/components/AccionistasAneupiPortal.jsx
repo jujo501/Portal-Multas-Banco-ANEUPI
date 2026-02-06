@@ -39,6 +39,11 @@ export default function AccionistasAneupiPortal() {
   const [filtrosActivos, setFiltrosActivos] = useState([]);
   const [mostrarRecordatorios, setMostrarRecordatorios] = useState(true);
 
+  // --- 🆕 ESTADOS PARA DATOS REALES (DB) ---
+  const [usarDatosRealesGlobal, setUsarDatosRealesGlobal] = useState(false);
+  const [accionistasReales, setAccionistasReales] = useState([]);
+  const [pagosReales, setPagosReales] = useState([]);
+
   // Estados de paginación
   const [paginaActualAccionistas, setPaginaActualAccionistas] = useState(1);
   const [itemsPorPaginaAccionistas, setItemsPorPaginaAccionistas] = useState(10);
@@ -72,7 +77,7 @@ export default function AccionistasAneupiPortal() {
     totalPendientes: 0
   });
 
-  // Datos
+  // Datos Mock
   const [mapaAccionistas, setMapaAccionistas] = useState({});
   const [accionistasData, setAccionistasData] = useState([]);
   const [filteredAccionistas, setFilteredAccionistas] = useState([]);
@@ -98,10 +103,27 @@ export default function AccionistasAneupiPortal() {
 
   const dias = obtenerDiasDelMes();
 
-  // Inicializar datos
+  // Inicializar datos (MOCK y REAL)
   useEffect(() => {
     setIsLoading(true);
     
+    // 1. Fetch Datos Reales
+    const cargarDatosReales = async () => {
+        try {
+            const resAcc = await fetch('http://localhost:3000/api/accionistas');
+            const dataAcc = await resAcc.json();
+            setAccionistasReales(Array.isArray(dataAcc) ? dataAcc : []);
+
+            const resPag = await fetch('http://localhost:3000/api/pagos');
+            const dataPag = await resPag.json();
+            setPagosReales(Array.isArray(dataPag) ? dataPag : []);
+        } catch (error) {
+            console.error("Error conectando backend:", error);
+        }
+    };
+    cargarDatosReales();
+
+    // 2. Generar Datos Mock
     setTimeout(() => {
       const accionistasGenerados = generarAccionistas();
       setAccionistasData(accionistasGenerados);
@@ -162,7 +184,7 @@ export default function AccionistasAneupiPortal() {
     });
   };
 
-  // Filtrar y ordenar accionistas
+  // Filtrar y ordenar accionistas (Mantiene lógica mock para la tabla mock)
   useEffect(() => {
     let filtered = [...accionistasData];
     
@@ -218,30 +240,24 @@ export default function AccionistasAneupiPortal() {
     }));
   };
 
-  // Filtrar pagos
+  // Filtrar pagos (Mantiene lógica mock para la tabla mock)
   const pagosFiltrados = useMemo(() => {
     let filtered = [...pagosDiariosData];
     
     if (accionistaSeleccionado) {
       filtered = filtered.filter(pago => pago.accionistaId === accionistaSeleccionado.id);
-      // Aplicar filtro de año también cuando hay accionista seleccionado
       if (selectedYearPagos && selectedYearPagos !== "Todos") {
         filtered = filtered.filter(pago => {
-          // Usar fechaIngresoMulta para incluir pendientes
           return pago.fechaIngresoMulta && pago.fechaIngresoMulta.includes(selectedYearPagos);
         });
       }
     } else {
-      // Filtrar por año
       if (selectedYearPagos && selectedYearPagos !== "Todos") {
         filtered = filtered.filter(pago => {
-          // Usar fechaIngresoMulta para incluir pendientes
           return pago.fechaIngresoMulta && pago.fechaIngresoMulta.includes(selectedYearPagos);
         });
       }
-      // Filtrar por mes
       if (selectedMonth !== "Todos") filtered = filtered.filter(pago => pago.mes && pago.mes.includes(selectedMonth));
-      // Filtrar por día
       if (selectedDay !== "Todos") filtered = filtered.filter(pago => pago.dia === selectedDay);
     }
     
@@ -284,9 +300,6 @@ export default function AccionistasAneupiPortal() {
       const otrasMultas = pagosAccionista.length - asambleasConFechas - atrasos;
       const totalAPagar = pagosAccionista.reduce((total, pago) => total + pago.monto, 0);
       
-
-
-
       setEstadisticasAccionista({ asambleasConFechas, atrasos, otrasMultas, totalAPagar });
     }
   }, [accionistaSeleccionado, pagosFiltrados]);
@@ -368,7 +381,7 @@ export default function AccionistasAneupiPortal() {
     return pagosFiltrados.slice(inicio, fin);
   };
 
-  // Calcular totales
+  // --- CÁLCULOS DE TOTALES (MOCK) ---
   const calcularTotalMultasTodosAnios = () => {
     return pagosDiariosData.reduce((sum, pago) => sum + pago.monto, 0);
   };
@@ -378,10 +391,35 @@ export default function AccionistasAneupiPortal() {
   const calcularTotalPagosFiltrados = () => pagosFiltrados.reduce((total, pago) => total + pago.monto, 0);
   const calcularPagosPendientes = () => pagosDiariosData.filter(pago => pago.estado === "Pendiente").length;
 
-  // Obtener accionista por ID
   const obtenerAccionistaPorId = (id) => {
     return accionistasData.find(a => a.id === id) || mapaAccionistas[id];
   };
+
+  // --- 🔴 CÁLCULO DINÁMICO DE TOTALES SUPERIORES ---
+  const obtenerDatosTotales = () => {
+    if (usarDatosRealesGlobal) {
+        // Usar datos de PostgreSQL
+        const totalMultasReal = pagosReales.reduce((sum, p) => sum + Number(p.monto || 0), 0);
+        const pendientesReal = pagosReales.filter(p => p.estado !== 'Completado').length;
+        
+        return {
+            totalAccionistas: accionistasReales.length,
+            multasTotales: totalMultasReal,
+            pagosPendientes: pendientesReal,
+            totalTransacciones: pagosReales.length
+        };
+    } else {
+        // Usar datos simulados
+        return {
+            totalAccionistas: accionistasData.length,
+            multasTotales: calcularTotalMultasTodosAnios(),
+            pagosPendientes: calcularPagosPendientes(),
+            totalTransacciones: pagosDiariosData.length
+        };
+    }
+  };
+
+  const totalesGlobales = obtenerDatosTotales();
 
   return (
     <div className="min-h-screen bg-aneupi-bg-tertiary p-4 md:p-8">
@@ -394,8 +432,21 @@ export default function AccionistasAneupiPortal() {
         setFiltroAvanzado={setFiltroAvanzado}
         enviarRecordatorios={enviarRecordatorios}
         marcarNotificacionLeida={marcarNotificacionLeida}
-        totalAccionistas={accionistasData.length}
+        totalAccionistas={totalesGlobales.totalAccionistas} // Sincronizado
       />
+
+      {/* --- BOTÓN GLOBAL MOCK/REAL --- */}
+      <div className="flex justify-end mb-4">
+        <button
+          onClick={() => setUsarDatosRealesGlobal(!usarDatosRealesGlobal)}
+          className={`px-4 py-2 rounded-lg font-bold flex items-center gap-2 transition-all shadow-sm border ${
+            usarDatosRealesGlobal ? 'bg-green-600 text-white border-green-500' : 'bg-white text-gray-600 border-gray-300'
+          }`}
+        >
+          <FaDatabase /> 
+          {usarDatosRealesGlobal ? "VIENDO DATOS REALES (DB)" : "VIENDO DATOS DE PRUEBA (MOCK)"}
+        </button>
+      </div>
 
       <FiltrosAvanzados 
         filtroAvanzado={filtroAvanzado}
@@ -406,7 +457,7 @@ export default function AccionistasAneupiPortal() {
         agregarFiltro={agregarFiltro}
       />
 
-      {/* Estadísticas rápidas */}
+      {/* Estadísticas rápidas (ACTUALIZADO) */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
         <button onClick={() => setActiveTab("Accionistas")} className="bg-white rounded-xl shadow-lg p-6 border border-aneupi-border-light hover:shadow-xl transition-shadow duration-300 transform hover:-translate-y-1 cursor-pointer text-left hover:border-aneupi-primary group">
           <div className="flex items-center justify-between mb-4">
@@ -415,8 +466,10 @@ export default function AccionistasAneupiPortal() {
               <FaUser className="text-aneupi-primary group-hover:text-white" />
             </div>
           </div>
-          <p className="text-3xl font-bold text-aneupi-primary">{accionistasData.length}</p>
-          <p className="text-sm text-aneupi-text-muted mt-2">Accionistas principales</p>
+          <p className="text-3xl font-bold text-aneupi-primary">{totalesGlobales.totalAccionistas}</p>
+          <p className="text-sm text-aneupi-text-muted mt-2">
+            {usarDatosRealesGlobal ? "Registrados en Base de Datos" : "Accionistas principales (Simulado)"}
+          </p>
           <div className="mt-4 flex items-center text-aneupi-primary text-sm font-medium group-hover:text-aneupi-primary-dark">
             <span>Ver Accionistas</span>
           </div>
@@ -429,8 +482,8 @@ export default function AccionistasAneupiPortal() {
               <FaDollarSign className="text-aneupi-primary group-hover:text-white" />
             </div>
           </div>
-          <p className="text-3xl font-bold text-aneupi-primary">${calcularTotalMultasTodosAnios().toLocaleString()}</p>
-          <p className="text-sm text-aneupi-text-muted mt-2">Acumulado {anioInicio}-{anioFin}</p>
+          <p className="text-3xl font-bold text-aneupi-primary">${totalesGlobales.multasTotales.toLocaleString()}</p>
+          <p className="text-sm text-aneupi-text-muted mt-2">Monto total registrado</p>
           <div className="mt-4 flex items-center text-aneupi-primary text-sm font-medium group-hover:text-aneupi-primary-dark">
             <span>Ver pago de multas</span>
           </div>
@@ -443,7 +496,7 @@ export default function AccionistasAneupiPortal() {
               <FaClock className="text-aneupi-primary group-hover:text-white" />
             </div>
           </div>
-          <p className="text-3xl font-bold text-aneupi-primary">{calcularPagosPendientes()}</p>
+          <p className="text-3xl font-bold text-aneupi-primary">{totalesGlobales.pagosPendientes}</p>
           <p className="text-sm text-aneupi-text-muted mt-2">Requieren atención</p>
           <div className="mt-4 flex items-center text-aneupi-primary text-sm font-medium group-hover:text-aneupi-primary-dark">
             <span>Gestionar pagos</span>
@@ -456,89 +509,47 @@ export default function AccionistasAneupiPortal() {
       <div className="bg-white rounded-xl shadow-lg overflow-hidden border border-aneupi-border-light">
         {activeTab === "Accionistas" && (
           <AccionistasTab 
-            searchTerm={searchTerm}
-            setSearchTerm={setSearchTerm}
-            selectedYear={selectedYear}
-            setSelectedYear={setSelectedYear}
-            exportandoExcel={exportandoExcel}
-            exportarAExcel={exportarAExcel}
-            filteredAccionistas={filteredAccionistas}
-            multasPorAnio={multasPorAnio}
-            pagosDiariosData={pagosDiariosData}
-            anios={anios}
-            anioInicio={anioInicio}
-            anioFin={anioFin}
-            sortConfigAccionistas={sortConfigAccionistas}
-            handleSortAccionistas={handleSortAccionistas}
-            obtenerAccionistasPaginaActual={obtenerAccionistasPaginaActual}
-            calcularTotalMultas={calcularTotalMultas}
-            calcularTotalMultasAccionista={(index) => {
-              const multa2023 = multasPorAnio["2023"]?.[index] || 0;
-              const multa2024 = multasPorAnio["2024"]?.[index] || 0;
-              const multa2025 = multasPorAnio["2025"]?.[index] || 0;
-              return multa2023 + multa2024 + multa2025;
-            }}
-            paginaActualAccionistas={paginaActualAccionistas}
-            setPaginaActualAccionistas={setPaginaActualAccionistas}
-            totalPaginasAccionistas={totalPaginasAccionistas}
-            itemsPorPaginaAccionistas={itemsPorPaginaAccionistas}
-            setItemsPorPaginaAccionistas={setItemsPorPaginaAccionistas}
-            totalItems={filteredAccionistas.length}
-            obtenerAccionistaPorId={obtenerAccionistaPorId}
-            totalAccionistas={accionistasData.length}
+            searchTerm={searchTerm} setSearchTerm={setSearchTerm} selectedYear={selectedYear} setSelectedYear={setSelectedYear}
+            exportandoExcel={exportandoExcel} exportarAExcel={exportarAExcel} filteredAccionistas={filteredAccionistas}
+            multasPorAnio={multasPorAnio} pagosDiariosData={pagosDiariosData} anios={anios} anioInicio={anioInicio} anioFin={anioFin}
+            sortConfigAccionistas={sortConfigAccionistas} handleSortAccionistas={handleSortAccionistas}
+            obtenerAccionistasPaginaActual={obtenerAccionistasPaginaActual} calcularTotalMultas={calcularTotalMultas}
+            calcularTotalMultasAccionista={(i) => (multasPorAnio["2023"]?.[i]||0) + (multasPorAnio["2024"]?.[i]||0) + (multasPorAnio["2025"]?.[i]||0)}
+            paginaActualAccionistas={paginaActualAccionistas} setPaginaActualAccionistas={setPaginaActualAccionistas}
+            totalPaginasAccionistas={totalPaginasAccionistas} itemsPorPaginaAccionistas={itemsPorPaginaAccionistas}
+            setItemsPorPaginaAccionistas={setItemsPorPaginaAccionistas} totalItems={filteredAccionistas.length}
+            obtenerAccionistaPorId={obtenerAccionistaPorId} totalAccionistas={totalesGlobales.totalAccionistas}
           />
         )}
 
         {activeTab === "Pago de multas" && (
           <PagosTab 
-            accionistaSeleccionado={accionistaSeleccionado}
-            setAccionistaSeleccionado={setAccionistaSeleccionado}
-            viewTypePagos={viewTypePagos}
-            setViewTypePagos={setViewTypePagos}
-            selectedYearPagos={selectedYearPagos}
-            setSelectedYearPagos={setSelectedYearPagos}
-            selectedMonth={selectedMonth}
-            setSelectedMonth={setSelectedMonth}
-            selectedDay={selectedDay}
-            setSelectedDay={setSelectedDay}
-            meses={meses}
-            dias={dias}
-            anios={anios}
-            estadisticasAccionista={estadisticasAccionista}
-            pagosFiltrados={pagosFiltrados}
-            mapaAccionistas={mapaAccionistas}
-            handleSeleccionarAccionistaDesdePagos={handleSeleccionarAccionistaDesdePagos}
-            sortConfigPagos={sortConfigPagos}
-            handleSortPagos={handleSortPagos}
-            obtenerPagosPaginaActual={obtenerPagosPaginaActual}
-            calcularTotalMontosPaginaActual={calcularTotalMontosPaginaActual}
-            calcularTotalPagosFiltrados={calcularTotalPagosFiltrados}
-            paginaActualPagos={paginaActualPagos}
-            setPaginaActualPagos={setPaginaActualPagos}
-            totalPaginasPagos={totalPaginasPagos}
-            itemsPorPaginaPagos={itemsPorPaginaPagos}
-            setItemsPorPaginaPagos={setItemsPorPaginaPagos}
-            totalItems={pagosFiltrados.length}
-            totalAccionistas={accionistasData.length}
+            accionistaSeleccionado={accionistaSeleccionado} setAccionistaSeleccionado={setAccionistaSeleccionado}
+            viewTypePagos={viewTypePagos} setViewTypePagos={setViewTypePagos} selectedYearPagos={selectedYearPagos}
+            setSelectedYearPagos={setSelectedYearPagos} selectedMonth={selectedMonth} setSelectedMonth={setSelectedMonth}
+            selectedDay={selectedDay} setSelectedDay={setSelectedDay} meses={meses} dias={dias} anios={anios}
+            estadisticasAccionista={estadisticasAccionista} pagosFiltrados={pagosFiltrados} mapaAccionistas={mapaAccionistas}
+            handleSeleccionarAccionistaDesdePagos={handleSeleccionarAccionistaDesdePagos} sortConfigPagos={sortConfigPagos}
+            handleSortPagos={handleSortPagos} obtenerPagosPaginaActual={obtenerPagosPaginaActual}
+            calcularTotalMontosPaginaActual={calcularTotalMontosPaginaActual} calcularTotalPagosFiltrados={calcularTotalPagosFiltrados}
+            paginaActualPagos={paginaActualPagos} setPaginaActualPagos={setPaginaActualPagos} totalPaginasPagos={totalPaginasPagos}
+            itemsPorPaginaPagos={itemsPorPaginaPagos} setItemsPorPaginaPagos={setItemsPorPaginaPagos}
+            totalItems={pagosFiltrados.length} totalAccionistas={totalesGlobales.totalAccionistas}
           />
         )}
 
         {activeTab === "Estadísticas" && (
           <EstadisticasTab 
-            selectedYearStats={selectedYearStats}
-            setSelectedYearStats={setSelectedYearStats}
-            resumenMensual={resumenMensual}
-            estadisticasAvanzadas={estadisticasAvanzadas}
-            totalAccionistas={accionistasData.length}
-            pagos={pagosDiariosData}
-            anios={anios}
+            selectedYearStats={selectedYearStats} setSelectedYearStats={setSelectedYearStats} resumenMensual={resumenMensual}
+            estadisticasAvanzadas={estadisticasAvanzadas} totalAccionistas={totalesGlobales.totalAccionistas}
+            pagos={pagosDiariosData} anios={anios}
           />
         )}
 
-        {activeTab === "Reportes" && <ReportesTab totalAccionistas={accionistasData.length} pagos={pagosDiariosData} accionistas={accionistasData} anios={anios} />}
+        {activeTab === "Reportes" && <ReportesTab totalAccionistas={totalesGlobales.totalAccionistas} pagos={pagosDiariosData} accionistas={accionistasData} anios={anios} />}
       </div>
 
-      {/* Información adicional */}
+      {/* Información adicional (MANTENIDA) */}
       <div className="bg-white rounded-xl shadow-lg p-7 mb-10 border-2 border-aneupi-primary">
         <h3 className="text-xl font-bold text-aneupi-primary mb-6 flex items-center gap-2">
           <FaInfoCircle className="text-aneupi-primary" />
@@ -550,7 +561,7 @@ export default function AccionistasAneupiPortal() {
             <ul className="space-y-3 text-aneupi-text-secondary">
               <li className="flex items-center gap-2">
                 <FaDatabase className="text-aneupi-primary text-sm" />
-                <span>Base de datos: {accionistasData.length} accionistas principales</span>
+                <span>Base de datos: {totalesGlobales.totalAccionistas} accionistas principales</span>
               </li>
               <li className="flex items-center gap-2">
                 <FaChartBar className="text-aneupi-primary text-sm" />
@@ -590,16 +601,16 @@ export default function AccionistasAneupiPortal() {
         </div>
       </div>
 
-      {/* Footer */}
+      {/* Footer (MANTENIDO Y ACTUALIZADO) */}
       <div className="text-center text-aneupi-text-muted text-sm border-t-2 border-aneupi-primary pt-8 pb-4">
         <p>© 2024 Sistema de Gestión de Multas - Banco ANEUPI. Todos los derechos reservados.</p>
         <p className="mt-3">Versión 4.0.0 • Sistema especializado para la gestión y seguimiento de multas aplicadas a los accionistas • Última actualización: Diciembre 2024</p>
         <div className="flex flex-wrap justify-center gap-4 mt-4">
           <span className="flex items-center gap-1">
-            <FaDatabase className="text-aneupi-primary" /> {accionistasData.length} Accionistas
+            <FaDatabase className="text-aneupi-primary" /> {totalesGlobales.totalAccionistas} Accionistas
           </span>
           <span className="flex items-center gap-1">
-            <FaMoneyCheckAlt className="text-aneupi-primary" /> {pagosDiariosData.length} Transacciones
+            <FaMoneyCheckAlt className="text-aneupi-primary" /> {totalesGlobales.totalTransacciones} Transacciones
           </span>
           <span className="flex items-center gap-1">
             <FaChartBar className="text-aneupi-primary" /> Estadísticas en tiempo real
