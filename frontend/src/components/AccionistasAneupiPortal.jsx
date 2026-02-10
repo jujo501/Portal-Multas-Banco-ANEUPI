@@ -26,8 +26,12 @@ export default function AccionistasAneupiPortal({ usuarioLogueado, onLogout }) {
   const [accionistasData, setAccionistasData] = useState([]);
   const [pagosData, setPagosData] = useState([]); 
   
-  // Filtros UI
+  // Filtros UI Accionistas
   const [searchTerm, setSearchTerm] = useState("");
+
+  // NUEVO: Filtros UI Pagos
+  const [searchTermPagos, setSearchTermPagos] = useState("");
+
   const [accionistaSeleccionado, setAccionistaSeleccionado] = useState(null);
   const [selectedYear, setSelectedYear] = useState("Todos");
   const [selectedYearPagos, setSelectedYearPagos] = useState("Todos");
@@ -36,7 +40,7 @@ export default function AccionistasAneupiPortal({ usuarioLogueado, onLogout }) {
   const [viewTypePagos, setViewTypePagos] = useState("mensual");
   
   const [filtroAvanzado, setFiltroAvanzado] = useState(false);
-  const [filtrosActivos, setFiltrosActivos] = useState([]);
+  const [filtrosActivos, setFiltrosActivos] = useState([]); // Estado para filtros múltiples
   const [notificaciones, setNotificaciones] = useState([]);
   const [exportandoExcel, setExportandoExcel] = useState(false);
   const [mostrarRecordatorios, setMostrarRecordatorios] = useState(true);
@@ -123,23 +127,79 @@ export default function AccionistasAneupiPortal({ usuarioLogueado, onLogout }) {
     cargarDatos();
   }, [esAdmin, usuarioActual.id]);
 
+  // --- FUNCIONES DE FILTRADO PARA EL MODAL ---
+  const agregarFiltro = (tipo, valor) => {
+    const existe = filtrosActivos.some(f => f.tipo === tipo && f.valor === valor);
+    if (!existe) {
+      setFiltrosActivos([...filtrosActivos, { tipo, valor }]);
+    }
+  };
+
+  const removerFiltro = (index) => {
+    const nuevosFiltros = [...filtrosActivos];
+    nuevosFiltros.splice(index, 1);
+    setFiltrosActivos(nuevosFiltros);
+  };
+
+  const limpiarFiltros = () => {
+    setFiltrosActivos([]);
+  };
+
+  // --- LÓGICA DE FILTRADO DE ACCIONISTAS (Buscador + Filtros Avanzados) ---
   const filteredAccionistas = useMemo(() => {
     let filtered = [...accionistasData];
+    
+    // 1. Buscador (Texto)
     if (searchTerm) {
       const term = searchTerm.toLowerCase();
-      filtered = filtered.filter(a => (a.nombre || "").toLowerCase().includes(term));
+      filtered = filtered.filter(a => 
+        (a.nombre && a.nombre.toLowerCase().includes(term)) || 
+        (a.codigo && a.codigo.toLowerCase().includes(term)) ||
+        (a.email && a.email.toLowerCase().includes(term))
+      );
     }
+
+    // 2. Filtros Avanzados
+    if (filtrosActivos.length > 0) {
+      filtered = filtered.filter(accionista => {
+        return filtrosActivos.every(filtro => {
+          if (filtro.tipo === "estado") {
+             // Asumiendo que 'estado' existe en el objeto accionista
+             return accionista.estado === filtro.valor;
+          }
+          return true;
+        });
+      });
+    }
+
     filtered.sort((a, b) => a.id - b.id);
     return filtered;
-  }, [accionistasData, searchTerm]);
+  }, [accionistasData, searchTerm, filtrosActivos]);
 
+  // --- LÓGICA DE FILTRADO DE PAGOS (Buscador + Filtros) ---
   const pagosFiltrados = useMemo(() => {
     let filtered = [...pagosData];
+    
+    // 1. Filtro por Accionista seleccionado (Dropdown o contexto)
     if (accionistaSeleccionado) filtered = filtered.filter(p => p.accionistaId === accionistaSeleccionado.id);
+    
+    // 2. Filtro por Año
     if (selectedYearPagos !== "Todos") filtered = filtered.filter(p => (p.fechaIngresoMulta || "").includes(selectedYearPagos));
+
+    // 3. NUEVO: Filtro por Buscador de Pagos (Nombre, Código, Referencia)
+    if (searchTermPagos) {
+      const term = searchTermPagos.toLowerCase();
+      filtered = filtered.filter(p => 
+        (p.accionista?.nombre || "").toLowerCase().includes(term) ||
+        (p.accionista?.codigo || "").toLowerCase().includes(term) ||
+        (p.referencia || "").toLowerCase().includes(term) ||
+        (p.descripcion || "").toLowerCase().includes(term)
+      );
+    }
+
     filtered.sort((a, b) => a.id - b.id);
     return filtered;
-  }, [pagosData, accionistaSeleccionado, selectedYearPagos]);
+  }, [pagosData, accionistaSeleccionado, selectedYearPagos, searchTermPagos]); // Agregado searchTermPagos
 
   const obtenerAccionistasPaginaActual = () => {
     const inicio = (paginaActualAccionistas - 1) * itemsPorPaginaAccionistas;
@@ -182,6 +242,7 @@ export default function AccionistasAneupiPortal({ usuarioLogueado, onLogout }) {
         filtroAvanzado={filtroAvanzado} setFiltroAvanzado={setFiltroAvanzado}
         enviarRecordatorios={enviarRecordatorios} marcarNotificacionLeida={marcarNotificacionLeida}
         totalAccionistas={totales.totalAccionistas} usuario={usuarioActual}
+        mostrarNotificaciones={!esAdmin} // NUEVO: Oculta campana si es admin
       />
 
       <div className="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
@@ -198,7 +259,14 @@ export default function AccionistasAneupiPortal({ usuarioLogueado, onLogout }) {
         </button>
       </div>
 
-      <FiltrosAvanzados filtroAvanzado={filtroAvanzado} setFiltroAvanzado={setFiltroAvanzado} filtrosActivos={filtrosActivos} limpiarFiltros={() => setFiltrosActivos([])} />
+      <FiltrosAvanzados 
+        filtroAvanzado={filtroAvanzado} 
+        setFiltroAvanzado={setFiltroAvanzado} 
+        filtrosActivos={filtrosActivos} 
+        agregarFiltro={agregarFiltro}
+        removerFiltro={removerFiltro}
+        limpiarFiltros={limpiarFiltros}
+      />
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
         <div onClick={() => esAdmin && setActiveTab("Accionistas")} className={`bg-white rounded-xl shadow-lg p-6 border border-aneupi-border-light transition-all ${esAdmin ? 'cursor-pointer hover:shadow-xl hover:-translate-y-1 hover:border-aneupi-primary' : ''} group`}>
@@ -248,9 +316,13 @@ export default function AccionistasAneupiPortal({ usuarioLogueado, onLogout }) {
         
         {activeTab === "Accionistas" && !esAdmin && (<div className="p-10 text-center text-gray-500">No tienes permisos.</div>)}
 
-        {/* SOLUCIÓN ERROR PANTALLA BLANCA: Ahora 'dias' se pasa correctamente */}
+        {/* --- PESTAÑA PAGOS (ACTUALIZADA CON BUSCADOR) --- */}
         {activeTab === "Pago de multas" && (
           <PagosTab 
+            // Pasamos los nuevos props del buscador
+            searchTerm={searchTermPagos}
+            setSearchTerm={setSearchTermPagos}
+            
             accionistaSeleccionado={accionistaSeleccionado} 
             setAccionistaSeleccionado={esAdmin ? setAccionistaSeleccionado : undefined}
             viewTypePagos={viewTypePagos} setViewTypePagos={setViewTypePagos} selectedYearPagos={selectedYearPagos}

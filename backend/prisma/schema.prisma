@@ -63,9 +63,9 @@ model Accionista {
   email          String           @unique
   codigo         String           @unique
   
-  // 🔐 CAMPOS NUEVOS PARA LOGIN Y SEGURIDAD
-  password       String           // Aquí guardaremos la contraseña hasheada
-  rol            RolSistema       @default(USER) // Por defecto todos son usuarios normales
+  // 🔐 LOGIN Y SEGURIDAD
+  password       String           
+  rol            RolSistema       @default(USER) 
   
   fechaIngreso   DateTime         @default(now())
   direccion      String?
@@ -93,7 +93,13 @@ model Pago {
 
   mes               String?
   dia               Int?
+  
+  // SALDO ACTUAL DE LA DEUDA
   monto             Decimal  @db.Decimal(10, 2)
+
+  // ⚠️ CAMPO NUEVO IMPORTANTE (Almacena temporalmente cuánto dice el usuario que pagó)
+  montoAbonado      Decimal? @default(0) @db.Decimal(10, 2) 
+
   fechaIngresoMulta DateTime @default(now())
   fechaPago         DateTime?
   horaPago          String?
@@ -103,8 +109,8 @@ model Pago {
   descripcion       String?
   observacion       String?
   
-  // 📸 AQUÍ SE GUARDA LA URL DE LA FOTO (Ya lo tenías bien)
-  comprobante       String?     
+  // 📸 URL DE LA FOTO
+  comprobante       String?      
   canal             String?
   
   email             String?
@@ -131,31 +137,31 @@ model Abono {
 }
 
 model Notificacion {
-  id           Int                   @id @default(autoincrement())
+  id             Int                   @id @default(autoincrement())
   
-  accionistaId Int
-  accionista   Accionista            @relation(fields: [accionistaId], references: [id])
+  accionistaId   Int
+  accionista     Accionista            @relation(fields: [accionistaId], references: [id])
 
-  tipo         TipoNotificacion
-  titulo       String
-  mensaje      String                @db.Text 
-  fecha        DateTime              @default(now())
-  leida        Boolean               @default(false)
-  accion       String?
-  prioridad    PrioridadNotificacion @default(media)
+  tipo           TipoNotificacion
+  titulo         String
+  mensaje        String                @db.Text 
+  fecha          DateTime              @default(now())
+  leida          Boolean               @default(false)
+  accion         String?
+  prioridad      PrioridadNotificacion @default(media)
 
   @@map("notificaciones")
 }
 
 model Auditoria {
-  id           Int      @id @default(autoincrement())
-  fecha        DateTime @default(now())
-  accion       String   
-  detalle      String?  
-  usuario      String?  
+  id             Int      @id @default(autoincrement())
+  fecha          DateTime @default(now())
+  accion         String   
+  detalle        String?  
+  usuario        String?  
   
-  accionistaId Int?     
-  accionista   Accionista? @relation(fields: [accionistaId], references: [id])
+  accionistaId   Int?      
+  accionista     Accionista? @relation(fields: [accionistaId], references: [id])
 
   @@map("auditorias")
 }
