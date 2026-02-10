@@ -1,33 +1,46 @@
-import { useState } from "react"; 
-import { Toaster } from "sonner";
+import { useState, useEffect } from "react";
+import { Toaster } from "sonner"; 
+import AccionistasAneupiPortal from "./components/AccionistasAneupiPortal";
 import { LoginScreen } from "./components/LoginScreen";
 
-// 👉 Importa tu componente del portal
-import AccionistasAneupiPortal from "./components/AccionistasAneupiPortal";
+function App() {
+ 
+  const [user, setUser] = useState(() => {
+    const savedUser = localStorage.getItem("user");
+    return savedUser ? JSON.parse(savedUser) : null;
+  });
 
-export default function App() {
-  const [userRole, setUserRole] = useState(null);
-  const [userEmail, setUserEmail] = useState("");
-
-  const handleLogin = (role, email) => {
-    setUserRole(role);
-    setUserEmail(email);
+  
+  const handleLogin = (userData) => {
+    setUser(userData);
+    localStorage.setItem("user", JSON.stringify(userData)); 
   };
 
+  
   const handleLogout = () => {
-    setUserRole(null);
-    setUserEmail("");
+    setUser(null);
+    localStorage.removeItem("user");
+    localStorage.removeItem("token");
   };
 
   return (
-    <div className="min-h-screen">
-      <Toaster richColors />
+    <>
+      {/* Componente de Notificaciones Global */}
+      <Toaster position="top-right" richColors />
 
-      {!userRole ? (
+      {/* Lógica del Semáforo */}
+      {!user ? (
+        
         <LoginScreen onLogin={handleLogin} />
       ) : (
-        <AccionistasAneupiPortal onLogout={handleLogout} />
+        
+        <AccionistasAneupiPortal 
+          usuarioLogueado={user} 
+          onLogout={handleLogout} 
+        />
       )}
-    </div>
+    </>
   );
 }
+
+export default App;

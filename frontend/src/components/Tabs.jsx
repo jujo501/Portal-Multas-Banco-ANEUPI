@@ -1,17 +1,23 @@
 import { FaClipboardCheck, FaMoneyCheckAlt, FaChartBar, FaFileExport } from "react-icons/fa";
 
-const Tabs = ({ activeTab, setActiveTab }) => {
+
+const Tabs = ({ activeTab, setActiveTab, esAdmin }) => {
+  
   const tabs = [
-    { id: "Accionistas", icon: <FaClipboardCheck />, color: "rgb(var(--aneupi-primary))", colorClaro: "rgb(var(--aneupi-secondary))", desc: "Multas anuales" },
+    
+    { id: "Accionistas", icon: <FaClipboardCheck />, color: "rgb(var(--aneupi-primary))", colorClaro: "rgb(var(--aneupi-secondary))", desc: "Multas anuales", adminOnly: true },
     { id: "Pago de multas", icon: <FaMoneyCheckAlt />, color: "rgb(var(--aneupi-primary))", colorClaro: "rgb(var(--aneupi-secondary))", desc: "Gestión de pagos" },
     { id: "Estadísticas", icon: <FaChartBar />, color: "rgb(var(--aneupi-primary))", colorClaro: "rgb(var(--aneupi-secondary))", desc: "Análisis avanzado" },
     { id: "Reportes", icon: <FaFileExport />, color: "rgb(var(--aneupi-primary))", colorClaro: "rgb(var(--aneupi-secondary))", desc: "Generar reportes" }
   ];
 
+  
+  const visibleTabs = tabs.filter(tab => esAdmin || !tab.adminOnly);
+
   return (
     <div className="mb-10">
       <div className="flex flex-wrap gap-4 mb-8">
-        {tabs.map(tab => (
+        {visibleTabs.map(tab => (
           <button
             key={tab.id}
             onClick={() => setActiveTab(tab.id)}

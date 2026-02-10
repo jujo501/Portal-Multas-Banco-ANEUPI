@@ -1,5 +1,4 @@
-import { useState, useEffect } from "react";
-import { FaSearch, FaCalendarAlt, FaFileExcel, FaDollarSign, FaChartBar, FaFilter, FaCalculator, FaCalendar, FaSortUp, FaSortDown, FaDatabase } from "react-icons/fa";
+import { FaSearch, FaCalendarAlt, FaFileExcel, FaUser, FaMoneyBillWave, FaChartPie } from "react-icons/fa";
 import Paginacion from "./Paginacion";
 
 const AccionistasTab = ({ 
@@ -9,15 +8,14 @@ const AccionistasTab = ({
   setSelectedYear,
   exportandoExcel,
   exportarAExcel,
-  filteredAccionistas = [],
-  pagosDiariosData = [],
+  
+  // Datos Reales 
+  filteredAccionistas = [], 
+  pagosDiariosData = [],    
   anios = [],
-  anioInicio,
-  anioFin,
-  sortConfigAccionistas,
-  handleSortAccionistas,
+  
+  // Paginación
   obtenerAccionistasPaginaActual,
-  calcularTotalMultasAccionista, 
   paginaActualAccionistas,
   setPaginaActualAccionistas,
   totalPaginasAccionistas,
@@ -26,191 +24,212 @@ const AccionistasTab = ({
   totalItems,
   totalAccionistas
 }) => {
-  
-  const [accionistasReales, setAccionistasReales] = useState([]);
-  const [usarDatosReales, setUsarDatosReales] = useState(false);
 
-  useEffect(() => {
-    fetch('http://localhost:3000/api/accionistas')
-      .then(res => res.json())
-      .then(data => setAccionistasReales(Array.isArray(data) ? data : []))
-      .catch(err => console.error(" Error backend:", err));
-  }, []);
+  // --- CÁLCULOS DE NEGOCIO ---
 
- 
-  
-  const accionistasRealesFiltrados = (accionistasReales || []).filter(acc => 
-    (acc.nombre || "").toLowerCase().includes(searchTerm.toLowerCase()) || 
-    (acc.codigo || "").toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  // 1. Calcular cuánto pagó un accionista en un año específico
+  const calcularPagoPorAnio = (accionistaId, anio) => {
+    if (!pagosDiariosData || pagosDiariosData.length === 0) return 0;
 
-  const totalRecaudadoReal = accionistasRealesFiltrados.reduce((total, acc) => {
-    const suma = acc.pagos ? acc.pagos.reduce((s, p) => s + Number(p.monto || 0), 0) : 0;
-    return total + suma;
-  }, 0);
+    // Filtramos pagos de este usuario
+    const pagosUsuario = pagosDiariosData.filter(p => p.accionistaId === accionistaId);
 
-  const promedioReal = accionistasRealesFiltrados.length > 0 ? (totalRecaudadoReal / accionistasRealesFiltrados.length) : 0;
-  const totalPaginasReal = Math.ceil(accionistasRealesFiltrados.length / (itemsPorPaginaAccionistas || 10)) || 1;
-
-  const calcularMontoRealCelda = (accionista, anio) => {
-    if (!accionista?.pagos) return 0;
-    const pagos = anio === "Todos" 
-      ? accionista.pagos 
-      : accionista.pagos.filter(p => {
-          const f = p.fechaRegistro || p.fechaIngresoMulta;
-          return f && new Date(f).getFullYear().toString() === anio;
-        });
-    return pagos.reduce((s, p) => s + Number(p.monto || 0), 0);
-  };
-
-
-  
-  
-  const calcularMontoRealPorAnioMock = (accionistaId, anio) => {
     if (anio === "Todos") {
-      return pagosDiariosData
-        .filter(pago => pago.accionistaId === accionistaId)
-        .reduce((sum, pago) => sum + Number(pago.monto || 0), 0);
+        return pagosUsuario.reduce((sum, p) => sum + Number(p.monto || 0), 0);
+    } else {
+        return pagosUsuario
+            .filter(p => (p.fechaIngresoMulta || "").includes(anio.toString()))
+            .reduce((sum, p) => sum + Number(p.monto || 0), 0);
     }
-    return pagosDiariosData
-      .filter(pago => pago.accionistaId === accionistaId && pago.fechaPago && pago.fechaPago.includes(anio))
-      .reduce((sum, pago) => sum + Number(pago.monto || 0), 0);
   };
 
-  const calcularTotalAnioSeleccionadoMock = () => {
-    const data = selectedYear === "Todos" ? pagosDiariosData : (pagosDiariosData || []).filter(p => p.fechaPago?.includes(selectedYear));
-    return (data || []).reduce((sum, p) => sum + Number(p.monto || 0), 0);
+  // 2. Calcular total global del año seleccionado (para las tarjetas de abajo)
+  const calcularTotalAnioSeleccionado = () => {
+    let pagosFiltrados = pagosDiariosData;
+    
+    // Si hay búsqueda por nombre, sumamos solo de los usuarios visibles
+    if (searchTerm) {
+        const idsVisibles = filteredAccionistas.map(a => a.id);
+        pagosFiltrados = pagosFiltrados.filter(p => idsVisibles.includes(p.accionistaId));
+    }
+
+    if (selectedYear !== "Todos") {
+        pagosFiltrados = pagosFiltrados.filter(p => (p.fechaIngresoMulta || "").includes(selectedYear));
+    }
+    
+    return pagosFiltrados.reduce((sum, p) => sum + Number(p.monto || 0), 0);
   };
 
-  const calcularPromedioMultasMock = () => {
-    const total = calcularTotalAnioSeleccionadoMock();
-    return total > 0 ? Math.round(total / (filteredAccionistas.length || 1)) : 0;
+  // 3. Calcular Promedio
+  const calcularPromedio = () => {
+    const total = calcularTotalAnioSeleccionado();
+    const divisor = filteredAccionistas.length || 1;
+    return total / divisor;
   };
 
-
-  const obtenerDatosAMostrar = () => {
-    if (!usarDatosReales) return obtenerAccionistasPaginaActual() || [];
-    const inicio = (paginaActualAccionistas - 1) * itemsPorPaginaAccionistas;
-    return accionistasRealesFiltrados.slice(inicio, inicio + itemsPorPaginaAccionistas);
-  };
+  // Obtenemos los usuarios a mostrar en esta página
+  const accionistasVisibles = obtenerAccionistasPaginaActual();
 
   return (
     <>
       <div className="bg-aneupi-primary text-white p-7 border-b border-aneupi-primary-dark">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-8">
           <div>
-            <h2 className="text-2xl font-bold mb-3">Registro de Multas Anuales - ANEUPI</h2>
-            <p className="text-white/80">
-                Control de multas - {usarDatosReales ? accionistasRealesFiltrados.length : (totalAccionistas || 0)} accionistas
+            <h2 className="text-2xl font-bold mb-3">Registro de Multas Anuales</h2>
+            <p className="text-white/80 flex items-center gap-2">
+               <FaUser className="text-sm"/> Control de multas de {totalAccionistas} accionistas registrados
             </p>
           </div>
+          
           <div className="flex items-center gap-5">
-            <button
-              onClick={() => { setUsarDatosReales(!usarDatosReales); setPaginaActualAccionistas(1); }}
-              className={`flex items-center gap-2 px-4 py-2.5 rounded-lg font-bold border transition-all ${
-                usarDatosReales ? 'bg-green-600 border-green-400 text-white shadow-lg' : 'bg-white/10 border-white/20 text-white/70'
-              }`}
-            >
-              <FaDatabase className={usarDatosReales ? 'animate-pulse' : ''} />
-              {usarDatosReales ? "MODO REAL" : "MODO MOCK"}
-            </button>
+            {/* Filtro de Año */}
             <div className="relative">
-              <select value={selectedYear} onChange={(e) => setSelectedYear(e.target.value)} className="input-aneupi px-9 py-2.5">
-                <option value="Todos">Todos los años</option>
-                {(anios || []).map(anio => <option key={anio} value={anio}>{anio}</option>)}
+              <select 
+                value={selectedYear} 
+                onChange={(e) => setSelectedYear(e.target.value)} 
+                className="bg-white/10 border border-white/20 text-white rounded-lg px-4 py-2.5 pr-10 focus:outline-none focus:bg-white/20 transition-colors cursor-pointer appearance-none"
+              >
+                <option value="Todos" className="text-black">Todos los años</option>
+                {(anios || []).map(anio => <option key={anio} value={anio} className="text-black">{anio}</option>)}
               </select>
-              <FaCalendarAlt className="absolute right-4 top-1/2 -translate-y-1/2" />
+              <FaCalendarAlt className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-white/70" />
             </div>
-            <button onClick={() => exportarAExcel("accionistas")} className="btn-aneupi-secondary flex items-center gap-2">
-              <FaFileExcel /> Exportar
+
+            {/* Botón Exportar */}
+            <button 
+                onClick={() => exportarAExcel("accionistas")} 
+                disabled={exportandoExcel}
+                className="flex items-center gap-2 px-4 py-2.5 bg-white text-aneupi-primary font-bold rounded-lg hover:bg-gray-100 transition-colors shadow-sm disabled:opacity-70"
+            >
+              <FaFileExcel /> {exportandoExcel ? "Exportando..." : "Exportar"}
             </button>
           </div>
         </div>
+
+        {/* Barra de Búsqueda */}
         <div className="relative max-w-md">
-          <FaSearch className="absolute left-4 top-1/2 -translate-y-1/2 text-white/60" />
-          <input type="text" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} placeholder="Buscar..." className="input-aneupi w-full pl-12 py-3.5" />
+          <FaSearch className="absolute left-4 top-1/2 -translate-y-1/2 text-aneupi-primary/60" />
+          <input 
+            type="text" 
+            value={searchTerm} 
+            onChange={(e) => setSearchTerm(e.target.value)} 
+            placeholder="Buscar por nombre o código..." 
+            className="w-full pl-12 pr-4 py-3.5 rounded-xl text-gray-800 placeholder-gray-500 bg-white focus:outline-none focus:ring-4 focus:ring-white/20 shadow-lg" 
+          />
         </div>
       </div>
 
-      <div className="tablas overflow-x-auto">
-        <table className="table-aneupi">
+      {/* TABLA PRINCIPAL */}
+      <div className="overflow-x-auto min-h-[400px]">
+        <table className="w-full border-collapse">
           <thead className="bg-aneupi-bg-tertiary">
             <tr>
-              <th className="text-aneupi-primary">N°</th>
-              <th className="text-aneupi-primary">Accionistas</th>
-              {(anios || []).map(anio => <th key={anio} className="text-center text-aneupi-primary">{anio}</th>)}
-              <th className="text-center text-aneupi-primary">Total Multas</th>
+              <th className="py-4 px-6 text-left text-aneupi-primary font-bold border-b-2 border-aneupi-primary/20 w-20">ID</th>
+              <th className="py-4 px-6 text-left text-aneupi-primary font-bold border-b-2 border-aneupi-primary/20">Accionista</th>
+              {/* Columnas Dinámicas de Años */}
+              {(anios || []).slice(0, 5).map(anio => (
+                  <th key={anio} className="py-4 px-6 text-center text-aneupi-primary font-bold border-b-2 border-aneupi-primary/20">
+                    {anio}
+                  </th>
+              ))}
+              <th className="py-4 px-6 text-center text-aneupi-primary font-bold border-b-2 border-aneupi-primary/20 bg-aneupi-primary/5">Total</th>
             </tr>
           </thead>
-          <tbody>
-            {obtenerDatosAMostrar().map((accionista, index) => {
-              const totalM = usarDatosReales 
-                ? calcularMontoRealCelda(accionista, selectedYear)
-                : (selectedYear === "Todos" ? calcularTotalMultasAccionista(accionista.id) : calcularMontoRealPorAnioMock(accionista.id, selectedYear));
-              
-              return (
-                <tr key={accionista.id || index} className={`hover:bg-aneupi-bg-tertiary transition-colors ${index % 2 === 0 ? 'bg-white' : 'bg-aneupi-bg-tertiary'}`}>
-                  <td className="font-bold text-aneupi-primary text-lg">{accionista.id}</td>
-                  <td>
-                    <div className="flex items-center gap-4">
-                      <div className="w-12 h-12 bg-aneupi-primary rounded-full flex items-center justify-center text-white font-bold border border-aneupi-primary-dark">
-                        {(accionista.nombre || "U").charAt(0)}
-                      </div>
-                      <div>
-                        <p className="font-medium text-aneupi-primary">{accionista.nombre || "Sin nombre"}</p>
-                        <p className="text-sm text-aneupi-text-muted">{accionista.codigo || "S/C"}</p>
-                      </div>
-                    </div>
-                  </td>
-                  {(anios || []).map(anio => {
-                    const monto = usarDatosReales ? calcularMontoRealCelda(accionista, anio) : calcularMontoRealPorAnioMock(accionista.id, anio);
-                    return (
-                      <td key={anio} className="text-center font-medium">
-                        ${(monto || 0).toLocaleString()}
+          <tbody className="bg-white">
+            {accionistasVisibles.length > 0 ? (
+                accionistasVisibles.map((accionista, index) => {
+                  const totalHistorico = calcularPagoPorAnio(accionista.id, "Todos");
+                  
+                  return (
+                    <tr key={accionista.id} className={`hover:bg-blue-50 transition-colors ${index % 2 === 0 ? 'bg-white' : 'bg-gray-50/50'}`}>
+                      {/* ID */}
+                      <td className="py-4 px-6 border-b border-gray-100 font-mono text-gray-500 text-sm">#{accionista.id}</td>
+                      
+                      {/* Nombre y Código */}
+                      <td className="py-4 px-6 border-b border-gray-100">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 rounded-full bg-gradient-to-br from-aneupi-primary to-blue-600 text-white flex items-center justify-center font-bold text-sm shadow-md">
+                            {(accionista.nombre || "U").charAt(0)}
+                          </div>
+                          <div>
+                            <p className="font-bold text-gray-800">{accionista.nombre || "Sin nombre"}</p>
+                            <p className="text-xs text-gray-500 font-mono bg-gray-100 px-1.5 py-0.5 rounded inline-block">
+                                {accionista.codigo || "S/C"}
+                            </p>
+                          </div>
+                        </div>
                       </td>
-                    );
-                  })}
-                  <td className="text-center">
-                    <div className="inline-flex items-center gap-2 px-4 py-1.5 bg-aneupi-primary text-white rounded-full font-bold">
-                      ${(totalM || 0).toLocaleString()}
-                    </div>
-                  </td>
+
+                      {/* Montos por Año */}
+                      {(anios || []).slice(0, 5).map(anio => {
+                        const monto = calcularPagoPorAnio(accionista.id, anio);
+                        return (
+                          <td key={anio} className="py-4 px-6 border-b border-gray-100 text-center">
+                            {monto > 0 ? (
+                                <span className="font-medium text-gray-700">${monto.toLocaleString()}</span>
+                            ) : (
+                                <span className="text-gray-300">-</span>
+                            )}
+                          </td>
+                        );
+                      })}
+
+                      {/* Total Histórico */}
+                      <td className="py-4 px-6 border-b border-gray-100 text-center bg-gray-50/30">
+                        <span className="inline-flex items-center justify-center px-3 py-1 rounded-full bg-aneupi-primary text-white text-sm font-bold shadow-sm">
+                          ${totalHistorico.toLocaleString()}
+                        </span>
+                      </td>
+                    </tr>
+                  );
+                })
+            ) : (
+                <tr>
+                    <td colSpan={10} className="py-12 text-center text-gray-400">
+                        No se encontraron accionistas con ese criterio.
+                    </td>
                 </tr>
-              );
-            })}
+            )}
           </tbody>
         </table>
       </div>
 
+      {/* Paginación */}
       <Paginacion
         tipo="accionistas"
         paginaActual={paginaActualAccionistas}
         setPaginaActual={setPaginaActualAccionistas}
-        totalPaginas={usarDatosReales ? totalPaginasReal : totalPaginasAccionistas}
+        totalPaginas={totalPaginasAccionistas}
         itemsPorPagina={itemsPorPaginaAccionistas}
         setItemsPorPagina={setItemsPorPaginaAccionistas}
-        totalItems={usarDatosReales ? accionistasRealesFiltrados.length : totalItems}
-        itemsPaginaActual={obtenerDatosAMostrar().length}
+        totalItems={totalItems}
+        itemsPaginaActual={accionistasVisibles.length}
       />
 
-      <div className="bg-aneupi-bg-tertiary p-7 border-t grid grid-cols-1 md:grid-cols-3 gap-7">
-        <div className="card-aneupi">
-          <h3 className="font-medium text-aneupi-primary mb-3">Total {selectedYear}</h3>
-          <p className="text-2xl font-bold text-aneupi-primary">
-            ${(usarDatosReales ? totalRecaudadoReal : calcularTotalAnioSeleccionadoMock()).toLocaleString()}
-          </p>
+      {/* Tarjetas de Resumen (Footer) */}
+      <div className="bg-gray-50 p-8 border-t border-gray-200 grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 flex items-center gap-4">
+          <div className="p-3 bg-blue-100 text-aneupi-primary rounded-lg text-xl"><FaMoneyBillWave/></div>
+          <div>
+             <h3 className="text-sm font-medium text-gray-500 uppercase">Total Recaudado ({selectedYear})</h3>
+             <p className="text-2xl font-bold text-gray-800">${calcularTotalAnioSeleccionado().toLocaleString()}</p>
+          </div>
         </div>
-        <div className="card-aneupi">
-          <h3 className="font-medium text-aneupi-primary mb-3">Promedio</h3>
-          <p className="text-2xl font-bold text-aneupi-primary">
-            ${(usarDatosReales ? promedioReal : calcularPromedioMultasMock()).toLocaleString()}
-          </p>
+
+        <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 flex items-center gap-4">
+          <div className="p-3 bg-purple-100 text-purple-600 rounded-lg text-xl"><FaChartPie/></div>
+          <div>
+             <h3 className="text-sm font-medium text-gray-500 uppercase">Promedio por Socio</h3>
+             <p className="text-2xl font-bold text-gray-800">${calcularPromedio().toFixed(2)}</p>
+          </div>
         </div>
-        <div className="card-aneupi">
-          <h3 className="font-medium text-aneupi-primary mb-3">Filtrados</h3>
-          <p className="text-2xl font-bold text-aneupi-primary">
-            {usarDatosReales ? accionistasRealesFiltrados.length : (filteredAccionistas?.length || 0)} de {usarDatosReales ? accionistasReales.length : (totalAccionistas || 0)}
-          </p>
+
+        <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 flex items-center gap-4">
+          <div className="p-3 bg-green-100 text-green-600 rounded-lg text-xl"><FaUser/></div>
+          <div>
+             <h3 className="text-sm font-medium text-gray-500 uppercase">Socios Filtrados</h3>
+             <p className="text-2xl font-bold text-gray-800">{filteredAccionistas.length} <span className="text-sm text-gray-400 font-normal">/ {totalAccionistas}</span></p>
+          </div>
         </div>
       </div>
     </>

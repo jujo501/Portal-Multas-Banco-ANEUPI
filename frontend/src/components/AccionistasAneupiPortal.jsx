@@ -8,523 +8,251 @@ import ReportesTab from "./ReportesTab";
 import FiltrosAvanzados from "./FiltrosAvanzados";
 import LoadingSpinner from "./LoadingSpinner";
 import { accionistasService, pagosService } from "../services";
-import { 
-  generarMultasPorAnio, 
-  generarResumenMensual, 
-  generarNotificaciones,
-  meses,
-  anios,
-  anioInicio,
-  anioFin
-} from "../utils/dataGenerators";
-import { FaUser, FaDollarSign, FaClock, FaCalendarAlt, FaUniversity, FaBell, FaEnvelope, FaShieldAlt, FaChartBar, FaMoneyCheckAlt, FaDatabase, FaInfoCircle, FaInfo } from "react-icons/fa";
+import { generarMultasPorAnio, generarResumenMensual, generarNotificaciones, meses, anios } from "../utils/dataGenerators";
+import { FaUser, FaDollarSign, FaClock, FaSignOutAlt } from "react-icons/fa";
 
-export default function AccionistasAneupiPortal() {
-  // Estados principales
+export default function AccionistasAneupiPortal({ usuarioLogueado, onLogout }) {
+  
+  const usuarioActual = usuarioLogueado || { id: 0, nombre: "Invitado", rol: "USER" };
+  const esAdmin = usuarioActual.rol === "ADMIN" || usuarioActual.rol === "SUPERADMIN";
+
   const [activeTab, setActiveTab] = useState(() => {
-    return localStorage.getItem('activeTab') || 'Accionistas';
+    const savedTab = localStorage.getItem('activeTab');
+    if (!esAdmin && savedTab === 'Accionistas') return 'Pago de multas';
+    return savedTab || (esAdmin ? 'Accionistas' : 'Pago de multas');
   });
+
+  const [isLoading, setIsLoading] = useState(false);
+  const [accionistasData, setAccionistasData] = useState([]);
+  const [pagosData, setPagosData] = useState([]); 
+  
+  // Filtros UI
   const [searchTerm, setSearchTerm] = useState("");
+  const [accionistaSeleccionado, setAccionistaSeleccionado] = useState(null);
   const [selectedYear, setSelectedYear] = useState("Todos");
   const [selectedYearPagos, setSelectedYearPagos] = useState("Todos");
   const [selectedMonth, setSelectedMonth] = useState("Todos");
   const [selectedDay, setSelectedDay] = useState("Todos");
   const [viewTypePagos, setViewTypePagos] = useState("mensual");
-  const [isLoading, setIsLoading] = useState(false);
-  const [accionistaSeleccionado, setAccionistaSeleccionado] = useState(null);
   
-  // Estados para funcionalidades avanzadas
-  const [exportandoExcel, setExportandoExcel] = useState(false);
   const [filtroAvanzado, setFiltroAvanzado] = useState(false);
-  const [notificaciones, setNotificaciones] = useState([]);
   const [filtrosActivos, setFiltrosActivos] = useState([]);
+  const [notificaciones, setNotificaciones] = useState([]);
+  const [exportandoExcel, setExportandoExcel] = useState(false);
   const [mostrarRecordatorios, setMostrarRecordatorios] = useState(true);
 
-  // --- 🆕 ESTADOS PARA DATOS REALES (DB) ---
-  const [usarDatosRealesGlobal, setUsarDatosRealesGlobal] = useState(false);
-  const [accionistasReales, setAccionistasReales] = useState([]);
-  const [pagosReales, setPagosReales] = useState([]);
-
-  // Estados de paginación
+  // Paginación
   const [paginaActualAccionistas, setPaginaActualAccionistas] = useState(1);
   const [itemsPorPaginaAccionistas, setItemsPorPaginaAccionistas] = useState(10);
-  const [totalPaginasAccionistas, setTotalPaginasAccionistas] = useState(1);
   const [paginaActualPagos, setPaginaActualPagos] = useState(1);
   const [itemsPorPaginaPagos, setItemsPorPaginaPagos] = useState(15);
-  const [totalPaginasPagos, setTotalPaginasPagos] = useState(1);
 
-  // Estados de ordenamiento
   const [sortConfigAccionistas, setSortConfigAccionistas] = useState({ key: 'id', direction: 'asc' });
   const [sortConfigPagos, setSortConfigPagos] = useState({ key: 'id', direction: 'asc' });
 
-  // Estados para estadísticas
-  const [estadisticasAvanzadas, setEstadisticasAvanzadas] = useState({
-    totalMultasAcumulado: 0,
-    promedioMultas: 0,
-    maximaMulta: 0,
-    minimaMulta: 0,
-    accionistaMayorMulta: "",
-    accionistaMenorMulta: "",
-    crecimientoAnual: 0
-  });
-
+  // Stats
+  const [estadisticasAvanzadas, setEstadisticasAvanzadas] = useState({});
+  const [estadisticasAccionista, setEstadisticasAccionista] = useState({});
   const [selectedYearStats, setSelectedYearStats] = useState("Todos");
-  const [estadisticasAccionista, setEstadisticasAccionista] = useState({
-    asambleasConFechas: 0,
-    atrasos: 0,
-    otrasMultas: 0,
-    totalAPagar: 0,
-    totalCompletados: 0,
-    totalPendientes: 0
-  });
-
-  // Datos Mock
-  const [mapaAccionistas, setMapaAccionistas] = useState({});
-  const [accionistasData, setAccionistasData] = useState([]);
-  const [filteredAccionistas, setFilteredAccionistas] = useState([]);
-  const [multasPorAnio, setMultasPorAnio] = useState({});
-  const [pagosDiariosData, setPagosDiariosData] = useState([]);
   const [resumenMensual, setResumenMensual] = useState({});
+  const [multasPorAnio, setMultasPorAnio] = useState({});
+  const [mapaAccionistas, setMapaAccionistas] = useState({});
 
-  // Obtener días del mes seleccionado
+  
   const obtenerDiasDelMes = useCallback(() => {
-    const diasPorMes = {
-      "Enero": 31, "Febrero": 28, "Marzo": 31, "Abril": 30, "Mayo": 31, "Junio": 30,
-      "Julio": 31, "Agosto": 31, "Septiembre": 30, "Octubre": 31, "Noviembre": 30, "Diciembre": 31
-    };
-    
+    const diasPorMes = { "Enero": 31, "Febrero": 28, "Marzo": 31, "Abril": 30, "Mayo": 31, "Junio": 30, "Julio": 31, "Agosto": 31, "Septiembre": 30, "Octubre": 31, "Noviembre": 30, "Diciembre": 31 };
     if (selectedMonth === "Todos") return ["Todos"];
-    
-    const dias = [];
-    for (let i = 1; i <= diasPorMes[selectedMonth]; i++) {
-      dias.push(i);
-    }
-    return ["Todos", ...dias];
+    const diasArray = [];
+    for (let i = 1; i <= diasPorMes[selectedMonth]; i++) { diasArray.push(i); }
+    return ["Todos", ...diasArray];
   }, [selectedMonth]);
 
-  const dias = obtenerDiasDelMes();
+  const dias = obtenerDiasDelMes(); 
 
-  // Persistir activeTab en localStorage
-  useEffect(() => {
-    localStorage.setItem('activeTab', activeTab);
-  }, [activeTab]);
+  useEffect(() => { localStorage.setItem('activeTab', activeTab); }, [activeTab]);
 
-  // Inicializar datos
+  // --- CARGA DE DATOS ---
   useEffect(() => {
     const cargarDatos = async () => {
       setIsLoading(true);
-      
       try {
-        const [accionistasRes, pagosRes] = await Promise.all([
+        const [resAccionistas, resPagos] = await Promise.all([
           accionistasService.getAll(),
           pagosService.getAll()
         ]);
+
+        let listaAccionistas = Array.isArray(resAccionistas) ? resAccionistas : (resAccionistas?.data || []);
+        let listaPagos = Array.isArray(resPagos) ? resPagos : (resPagos?.data || []);
+
         
-        if (accionistasRes.success) {
-          setAccionistasData(accionistasRes.data);
-          setFilteredAccionistas(accionistasRes.data);
-          
-          const mapa = {};
-          accionistasRes.data.forEach(accionista => {
-            mapa[accionista.id] = accionista;
-          });
-          setMapaAccionistas(mapa);
-          
-          const multasGeneradas = generarMultasPorAnio(accionistasRes.data);
-          setMultasPorAnio(multasGeneradas);
-          calcularEstadisticasAvanzadas(multasGeneradas, accionistasRes.data);
+        listaAccionistas = listaAccionistas.filter(acc => 
+            acc.nombre !== "Administrador Principal" && 
+            acc.rol !== "ADMIN" && 
+            acc.rol !== "SUPERADMIN"
+        );
+
+        if (!esAdmin) {
+            listaAccionistas = listaAccionistas.filter(a => a.id === usuarioActual.id);
+            listaPagos = listaPagos.filter(p => p.accionistaId === usuarioActual.id);
+            if (listaAccionistas.length > 0) setAccionistaSeleccionado(listaAccionistas[0]);
         }
-        
-        if (pagosRes.success) {
-          setPagosDiariosData(pagosRes.data);
-          const resumenGenerado = generarResumenMensual(pagosRes.data);
-          setResumenMensual(resumenGenerado);
+
+        setAccionistasData(listaAccionistas);
+        setPagosData(listaPagos);
+
+        const mapa = {};
+        listaAccionistas.forEach(acc => mapa[acc.id] = acc);
+        setMapaAccionistas(mapa);
+
+        setMultasPorAnio(generarMultasPorAnio(listaAccionistas));
+        setResumenMensual(generarResumenMensual(listaPagos));
+        setNotificaciones(generarNotificaciones());
+
+        if (listaPagos.length > 0) {
+           const total = listaPagos.reduce((sum, p) => sum + Number(p.monto), 0);
+           setEstadisticasAvanzadas(prev => ({ ...prev, totalMultasAcumulado: total }));
         }
-        
-        const notificacionesIniciales = generarNotificaciones();
-        setNotificaciones(notificacionesIniciales);
+
       } catch (error) {
-        console.error('Error cargando datos:', error);
+        console.error("Error cargando datos:", error);
       } finally {
         setIsLoading(false);
       }
     };
     
     cargarDatos();
-  }, []);
+  }, [esAdmin, usuarioActual.id]);
 
-  // Calcular estadísticas avanzadas
-  const calcularEstadisticasAvanzadas = (multas, accionistas) => {
-    if (!multas["2024"] || multas["2024"].length === 0) return;
-    
-    const total2024 = multas["2024"].reduce((a, b) => a + b, 0);
-    const total2023 = multas["2023"].reduce((a, b) => a + b, 0);
-    
-    // Calcular total acumulado de todos los años disponibles
-    const aniosDisponibles = ["2023", "2024", "2025", "2026", "2027", "2028", "2029", "2030"];
-    const totalAcumulado = aniosDisponibles.reduce((sum, anio) => {
-      return sum + (multas[anio]?.reduce((a, b) => a + b, 0) || 0);
-    }, 0);
-    
-    const crecimiento = total2023 > 0 ? ((total2024 - total2023) / total2023) * 100 : 0;
-    
-    const maxMulta = Math.max(...multas["2024"]);
-    const minMulta = Math.min(...multas["2024"]);
-    const maxIndex = multas["2024"].indexOf(maxMulta);
-    const minIndex = multas["2024"].indexOf(minMulta);
-    
-    setEstadisticasAvanzadas({
-      totalMultasAcumulado: totalAcumulado,
-      promedioMultas: Math.round(total2024 / multas["2024"].length),
-      maximaMulta: maxMulta,
-      minimaMulta: minMulta,
-      accionistaMayorMulta: accionistas[maxIndex]?.nombre || "",
-      accionistaMenorMulta: accionistas[minIndex]?.nombre || "",
-      crecimientoAnual: Math.round(crecimiento * 10) / 10
-    });
-  };
-
-  // Filtrar y ordenar accionistas (Mantiene lógica mock para la tabla mock)
-  useEffect(() => {
+  const filteredAccionistas = useMemo(() => {
     let filtered = [...accionistasData];
-    
-    if (searchTerm.trim() !== "") {
+    if (searchTerm) {
       const term = searchTerm.toLowerCase();
-      filtered = filtered.filter(accionista =>
-        accionista.nombre.toLowerCase().includes(term) ||
-        accionista.codigo.toLowerCase().includes(term) ||
-        accionista.email.toLowerCase().includes(term) ||
-        accionista.telefono.includes(term) ||
-        accionista.direccion?.toLowerCase().includes(term) ||
-        accionista.tipoAccionista?.toLowerCase().includes(term)
-      );
+      filtered = filtered.filter(a => (a.nombre || "").toLowerCase().includes(term));
     }
-    
-    if (filtrosActivos.length > 0) {
-      filtered = filtered.filter(accionista => {
-        return filtrosActivos.every(filtro => {
-          if (filtro.tipo === "estado") return accionista.estado === filtro.valor;
-          if (filtro.tipo === "tipoAccionista") return accionista.tipoAccionista === filtro.valor;
-          return true;
-        });
-      });
-    }
-    
-    filtered.sort((a, b) => {
-      if (sortConfigAccionistas.key === 'id') {
-        return sortConfigAccionistas.direction === 'asc' ? a.id - b.id : b.id - a.id;
-      }
-      if (sortConfigAccionistas.key === 'nombre') {
-        return sortConfigAccionistas.direction === 'asc' 
-          ? a.nombre.localeCompare(b.nombre)
-          : b.nombre.localeCompare(a.nombre);
-      }
-      if (sortConfigAccionistas.key === 'fechaIngreso') {
-        return sortConfigAccionistas.direction === 'asc' 
-          ? new Date(a.fechaIngreso) - new Date(b.fechaIngreso)
-          : new Date(b.fechaIngreso) - new Date(a.fechaIngreso);
-      }
-      return 0;
-    });
-    
-    setFilteredAccionistas(filtered);
-    setTotalPaginasAccionistas(Math.ceil(filtered.length / itemsPorPaginaAccionistas));
-    setPaginaActualAccionistas(1);
-  }, [searchTerm, accionistasData, itemsPorPaginaAccionistas, sortConfigAccionistas, filtrosActivos]);
-
-  // Manejar ordenamiento
-  const handleSortAccionistas = (key) => {
-    setSortConfigAccionistas(prev => ({
-      key,
-      direction: prev.key === key && prev.direction === 'asc' ? 'desc' : 'asc'
-    }));
-  };
-
-  // Filtrar pagos (Mantiene lógica mock para la tabla mock)
-  const pagosFiltrados = useMemo(() => {
-    let filtered = [...pagosDiariosData];
-    
-    if (accionistaSeleccionado) {
-      filtered = filtered.filter(pago => pago.accionistaId === accionistaSeleccionado.id);
-      if (selectedYearPagos && selectedYearPagos !== "Todos") {
-        filtered = filtered.filter(pago => {
-          return pago.fechaIngresoMulta && pago.fechaIngresoMulta.includes(selectedYearPagos);
-        });
-      }
-    } else {
-      if (selectedYearPagos && selectedYearPagos !== "Todos") {
-        filtered = filtered.filter(pago => {
-          return pago.fechaIngresoMulta && pago.fechaIngresoMulta.includes(selectedYearPagos);
-        });
-      }
-      if (selectedMonth !== "Todos") filtered = filtered.filter(pago => pago.mes && pago.mes.includes(selectedMonth));
-      if (selectedDay !== "Todos") filtered = filtered.filter(pago => pago.dia === selectedDay);
-    }
-    
-    filtered.sort((a, b) => {
-      if (sortConfigPagos.key === 'id') return sortConfigPagos.direction === 'asc' ? a.id - b.id : b.id - a.id;
-      if (sortConfigPagos.key === 'fechaIngresoMulta') {
-        return sortConfigPagos.direction === 'desc'
-          ? new Date(b.fechaIngresoMulta) - new Date(a.fechaIngresoMulta)
-          : new Date(a.fechaIngresoMulta) - new Date(b.fechaIngresoMulta);
-      }
-      if (sortConfigPagos.key === 'fechaPago') {
-        const fechaA = a.fechaPago ? new Date(a.fechaPago) : new Date(0);
-        const fechaB = b.fechaPago ? new Date(b.fechaPago) : new Date(0);
-        return sortConfigPagos.direction === 'desc' ? fechaB - fechaA : fechaA - fechaB;
-      }
-      if (sortConfigPagos.key === 'monto') {
-        return sortConfigPagos.direction === 'desc' ? b.monto - a.monto : a.monto - b.monto;
-      }
-      if (sortConfigPagos.key === 'estado') {
-        return sortConfigPagos.direction === 'desc'
-          ? b.estado.localeCompare(a.estado)
-          : a.estado.localeCompare(b.estado);
-      }
-      return 0;
-    });
-    
+    filtered.sort((a, b) => a.id - b.id);
     return filtered;
-  }, [pagosDiariosData, accionistaSeleccionado, selectedYearPagos, selectedMonth, selectedDay, sortConfigPagos]);
+  }, [accionistasData, searchTerm]);
 
-  // Actualizar estadísticas del accionista
-  useEffect(() => {
-    if (accionistaSeleccionado) {
-      const pagosAccionista = pagosFiltrados.filter(pago => pago.accionistaId === accionistaSeleccionado.id);
-      const asambleasConFechas = pagosAccionista.filter(pago => pago.descripcion.toLowerCase().includes("asamblea")).length;
-      const atrasos = pagosAccionista.filter(pago => 
-        pago.descripcion.toLowerCase().includes("retraso") || 
-        pago.descripcion.toLowerCase().includes("mora") ||
-        pago.descripcion.toLowerCase().includes("atraso")
-      ).length;
-      const otrasMultas = pagosAccionista.length - asambleasConFechas - atrasos;
-      const totalAPagar = pagosAccionista.reduce((total, pago) => total + pago.monto, 0);
-      
-      setEstadisticasAccionista({ asambleasConFechas, atrasos, otrasMultas, totalAPagar });
-    }
-  }, [accionistaSeleccionado, pagosFiltrados]);
+  const pagosFiltrados = useMemo(() => {
+    let filtered = [...pagosData];
+    if (accionistaSeleccionado) filtered = filtered.filter(p => p.accionistaId === accionistaSeleccionado.id);
+    if (selectedYearPagos !== "Todos") filtered = filtered.filter(p => (p.fechaIngresoMulta || "").includes(selectedYearPagos));
+    filtered.sort((a, b) => a.id - b.id);
+    return filtered;
+  }, [pagosData, accionistaSeleccionado, selectedYearPagos]);
 
-  // Actualizar paginación de pagos
-  useEffect(() => {
-    setTotalPaginasPagos(Math.ceil(pagosFiltrados.length / itemsPorPaginaPagos));
-    if (paginaActualPagos > Math.ceil(pagosFiltrados.length / itemsPorPaginaPagos)) {
-      setPaginaActualPagos(1);
-    }
-  }, [pagosFiltrados.length, itemsPorPaginaPagos, paginaActualPagos]);
-
-  // Funciones de ordenamiento para pagos
-  const handleSortPagos = (key) => {
-    setSortConfigPagos(prev => ({
-      key,
-      direction: prev.key === key && prev.direction === 'asc' ? 'desc' : 'asc'
-    }));
-  };
-
-  // Manejar selección de accionista
-  const handleSeleccionarAccionistaDesdePagos = useCallback((accionistaId) => {
-    const accionista = accionistasData.find(a => a.id === accionistaId) || mapaAccionistas[accionistaId];
-    if (accionista) setAccionistaSeleccionado(accionista);
-  }, [accionistasData, mapaAccionistas]);
-
-  // Exportar a Excel
-  const exportarAExcel = (tipo) => {
-    setExportandoExcel(true);
-    setTimeout(() => {
-      alert(`Exportación completada para ${tipo}`);
-      setExportandoExcel(false);
-    }, 2000);
-  };
-
-  // Enviar recordatorios
-  const enviarRecordatorios = () => {
-    const pagosPendientes = pagosDiariosData.filter(pago => pago.estado === "Pendiente");
-    if (pagosPendientes.length === 0) {
-      alert("No hay pagos pendientes");
-      return;
-    }
-    alert(`${pagosPendientes.length} recordatorios enviados`);
-  };
-
-  // Marcar notificación como leída
-  const marcarNotificacionLeida = (id) => {
-    setNotificaciones(prev => prev.map(notif => notif.id === id ? { ...notif, leida: true } : notif));
-  };
-
-  // Limpiar filtros
-  const limpiarFiltros = () => {
-    setFiltrosActivos([]);
-  };
-
-  // Agregar filtro
-  const agregarFiltro = (tipo, valor) => {
-    if (!filtrosActivos.some(f => f.tipo === tipo && f.valor === valor)) {
-      setFiltrosActivos(prev => [...prev, { tipo, valor }]);
-    }
-  };
-
-  // Remover filtro
-  const removerFiltro = (index) => {
-    setFiltrosActivos(prev => prev.filter((_, i) => i !== index));
-  };
-
-  // Obtener accionistas para la página actual
   const obtenerAccionistasPaginaActual = () => {
     const inicio = (paginaActualAccionistas - 1) * itemsPorPaginaAccionistas;
-    const fin = inicio + itemsPorPaginaAccionistas;
-    return filteredAccionistas.slice(inicio, fin);
+    return filteredAccionistas.slice(inicio, inicio + itemsPorPaginaAccionistas);
   };
 
-  // Obtener pagos para la página actual
   const obtenerPagosPaginaActual = () => {
     const inicio = (paginaActualPagos - 1) * itemsPorPaginaPagos;
-    const fin = inicio + itemsPorPaginaPagos;
-    return pagosFiltrados.slice(inicio, fin);
+    return pagosFiltrados.slice(inicio, inicio + itemsPorPaginaPagos);
   };
 
-  // --- CÁLCULOS DE TOTALES (MOCK) ---
-  const calcularTotalMultasTodosAnios = () => {
-    return pagosDiariosData.reduce((sum, pago) => sum + pago.monto, 0);
+  const totales = {
+    totalAccionistas: accionistasData.length, 
+    multasTotales: pagosData.reduce((sum, p) => sum + Number(p.monto), 0),
+    pagosPendientes: pagosData.filter(p => p.estado === "Pendiente" || p.estado === "En_proceso").length,
+    transacciones: pagosData.length
   };
 
-  const calcularTotalMultas = () => multasPorAnio[selectedYear]?.reduce((sum, multa) => sum + multa, 0) || 0;
-  const calcularTotalMontosPaginaActual = () => obtenerPagosPaginaActual().reduce((total, pago) => total + pago.monto, 0);
-  const calcularTotalPagosFiltrados = () => pagosFiltrados.reduce((total, pago) => total + pago.monto, 0);
-  const calcularPagosPendientes = () => pagosDiariosData.filter(pago => pago.estado === "Pendiente").length;
-
-  const obtenerAccionistaPorId = (id) => {
-    return accionistasData.find(a => a.id === id) || mapaAccionistas[id];
+  const handleSortAccionistas = (key) => setSortConfigAccionistas({ key, direction: 'asc' });
+  const handleSortPagos = (key) => setSortConfigPagos({ key, direction: 'asc' });
+  const handleSeleccionarAccionistaDesdePagos = (id) => {
+    const acc = accionistasData.find(a => a.id === id);
+    if (acc) setAccionistaSeleccionado(acc);
   };
-
-  // --- 🔴 CÁLCULO DINÁMICO DE TOTALES SUPERIORES ---
-  const obtenerDatosTotales = () => {
-    if (usarDatosRealesGlobal) {
-        // Usar datos de PostgreSQL
-        const totalMultasReal = pagosReales.reduce((sum, p) => sum + Number(p.monto || 0), 0);
-        const pendientesReal = pagosReales.filter(p => p.estado !== 'Completado').length;
-        
-        return {
-            totalAccionistas: accionistasReales.length,
-            multasTotales: totalMultasReal,
-            pagosPendientes: pendientesReal,
-            totalTransacciones: pagosReales.length
-        };
-    } else {
-        // Usar datos simulados
-        return {
-            totalAccionistas: accionistasData.length,
-            multasTotales: calcularTotalMultasTodosAnios(),
-            pagosPendientes: calcularPagosPendientes(),
-            totalTransacciones: pagosDiariosData.length
-        };
-    }
-  };
-
-  const totalesGlobales = obtenerDatosTotales();
+  
+  const exportarAExcel = () => alert("Generando Excel...");
+  const enviarRecordatorios = () => alert("Enviando recordatorios...");
+  const marcarNotificacionLeida = (id) => setNotificaciones(prev => prev.filter(n => n.id !== id));
+  const obtenerAccionistaPorId = (id) => mapaAccionistas[id];
+  const calcularTotalMultas = () => totales.multasTotales;
+  const calcularTotalMontosPaginaActual = () => obtenerPagosPaginaActual().reduce((s, p) => s + Number(p.monto), 0);
+  const calcularTotalPagosFiltrados = () => pagosFiltrados.reduce((s, p) => s + Number(p.monto), 0);
 
   return (
     <div className="min-h-screen bg-aneupi-bg-tertiary p-4 md:p-8">
-      {isLoading && <LoadingSpinner totalAccionistas={20} />}
+      {isLoading && <LoadingSpinner />}
 
       <Header 
-        notificaciones={notificaciones} 
-        setNotificaciones={setNotificaciones}
-        filtroAvanzado={filtroAvanzado}
-        setFiltroAvanzado={setFiltroAvanzado}
-        enviarRecordatorios={enviarRecordatorios}
-        marcarNotificacionLeida={marcarNotificacionLeida}
-        totalAccionistas={totalesGlobales.totalAccionistas} // Sincronizado
+        notificaciones={notificaciones} setNotificaciones={setNotificaciones}
+        filtroAvanzado={filtroAvanzado} setFiltroAvanzado={setFiltroAvanzado}
+        enviarRecordatorios={enviarRecordatorios} marcarNotificacionLeida={marcarNotificacionLeida}
+        totalAccionistas={totales.totalAccionistas} usuario={usuarioActual}
       />
 
-      {/* --- BOTÓN GLOBAL MOCK/REAL --- */}
-      <div className="flex justify-end mb-4">
-        <button
-          onClick={() => setUsarDatosRealesGlobal(!usarDatosRealesGlobal)}
-          className={`px-4 py-2 rounded-lg font-bold flex items-center gap-2 transition-all shadow-sm border ${
-            usarDatosRealesGlobal ? 'bg-green-600 text-white border-green-500' : 'bg-white text-gray-600 border-gray-300'
-          }`}
-        >
-          <FaDatabase /> 
-          {usarDatosRealesGlobal ? "VIENDO DATOS REALES (DB)" : "VIENDO DATOS DE PRUEBA (MOCK)"}
+      <div className="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
+        <div>
+            <h1 className="text-2xl font-bold text-aneupi-primary">
+                {esAdmin ? 'Panel de Administración' : 'Mi Portal de Accionista'}
+            </h1>
+            <p className="text-gray-600 mt-1">
+                Bienvenido, <span className="font-bold text-aneupi-secondary">{usuarioActual.nombre}</span>
+            </p>
+        </div>
+        <button onClick={onLogout} className="px-4 py-2 bg-red-100 text-red-600 rounded-lg hover:bg-red-200 transition-colors font-medium text-sm flex items-center gap-2">
+            <FaSignOutAlt className="text-xs" /> Cerrar Sesión
         </button>
       </div>
 
-      <FiltrosAvanzados 
-        filtroAvanzado={filtroAvanzado}
-        setFiltroAvanzado={setFiltroAvanzado}
-        filtrosActivos={filtrosActivos}
-        removerFiltro={removerFiltro}
-        limpiarFiltros={limpiarFiltros}
-        agregarFiltro={agregarFiltro}
-      />
+      <FiltrosAvanzados filtroAvanzado={filtroAvanzado} setFiltroAvanzado={setFiltroAvanzado} filtrosActivos={filtrosActivos} limpiarFiltros={() => setFiltrosActivos([])} />
 
-      {/* Estadísticas rápidas (ACTUALIZADO) */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
-        <button onClick={() => setActiveTab("Accionistas")} className="bg-white rounded-xl shadow-lg p-6 border border-aneupi-border-light hover:shadow-xl transition-shadow duration-300 transform hover:-translate-y-1 cursor-pointer text-left hover:border-aneupi-primary group">
+        <div onClick={() => esAdmin && setActiveTab("Accionistas")} className={`bg-white rounded-xl shadow-lg p-6 border border-aneupi-border-light transition-all ${esAdmin ? 'cursor-pointer hover:shadow-xl hover:-translate-y-1 hover:border-aneupi-primary' : ''} group`}>
           <div className="flex items-center justify-between mb-4">
-            <h3 className="text-aneupi-text-secondary font-medium group-hover:text-aneupi-primary">Total Accionistas</h3>
-            <div className="p-2 bg-aneupi-secondary/20 rounded-lg group-hover:bg-aneupi-primary group-hover:text-white transition-colors border border-aneupi-secondary/30">
-              <FaUser className="text-aneupi-primary group-hover:text-white" />
-            </div>
+            <h3 className="text-aneupi-text-secondary font-medium group-hover:text-aneupi-primary">
+                {esAdmin ? "Total Accionistas" : "Mi Estado"}
+            </h3>
+            <div className="p-2 bg-aneupi-secondary/20 rounded-lg text-aneupi-primary"><FaUser /></div>
           </div>
-          <p className="text-3xl font-bold text-aneupi-primary">{totalesGlobales.totalAccionistas}</p>
-          <p className="text-sm text-aneupi-text-muted mt-2">
-            {usarDatosRealesGlobal ? "Registrados en Base de Datos" : "Accionistas principales (Simulado)"}
-          </p>
-          <div className="mt-4 flex items-center text-aneupi-primary text-sm font-medium group-hover:text-aneupi-primary-dark">
-            <span>Ver Accionistas</span>
-          </div>
-        </button>
+          <p className="text-3xl font-bold text-aneupi-primary">{esAdmin ? totales.totalAccionistas : "Activo"}</p>
+        </div>
 
-        <button onClick={() => setActiveTab("Pago de multas")} className="bg-white rounded-xl shadow-lg p-6 border border-aneupi-border-light hover:shadow-xl transition-shadow duration-300 transform hover:-translate-y-1 cursor-pointer text-left hover:border-aneupi-primary group">
+        <div onClick={() => setActiveTab("Pago de multas")} className="bg-white rounded-xl shadow-lg p-6 border border-aneupi-border-light hover:shadow-xl transition-shadow duration-300 transform hover:-translate-y-1 cursor-pointer group">
           <div className="flex items-center justify-between mb-4">
-            <h3 className="text-aneupi-text-secondary font-medium group-hover:text-aneupi-primary">Multas Totales</h3>
-            <div className="p-2 bg-aneupi-secondary/20 rounded-lg group-hover:bg-aneupi-primary group-hover:text-white transition-colors border border-aneupi-secondary/30">
-              <FaDollarSign className="text-aneupi-primary group-hover:text-white" />
-            </div>
+            <h3 className="text-aneupi-text-secondary font-medium group-hover:text-aneupi-primary">
+                {esAdmin ? "Multas Totales" : "Mis Multas"}
+            </h3>
+            <div className="p-2 bg-aneupi-secondary/20 rounded-lg text-aneupi-primary"><FaDollarSign /></div>
           </div>
-          <p className="text-3xl font-bold text-aneupi-primary">${totalesGlobales.multasTotales.toLocaleString()}</p>
-          <p className="text-sm text-aneupi-text-muted mt-2">Monto total registrado</p>
-          <div className="mt-4 flex items-center text-aneupi-primary text-sm font-medium group-hover:text-aneupi-primary-dark">
-            <span>Ver pago de multas</span>
-          </div>
-        </button>
+          <p className="text-3xl font-bold text-aneupi-primary">${totales.multasTotales.toLocaleString()}</p>
+        </div>
 
-        <div className="bg-white rounded-xl shadow-lg p-6 border border-aneupi-border-light hover:shadow-xl transition-shadow duration-300 transform hover:-translate-y-1 group cursor-pointer" onClick={() => { setActiveTab("Pago de multas"); setMostrarRecordatorios(true); }}>
+        <div onClick={() => { setActiveTab("Pago de multas"); setMostrarRecordatorios(true); }} className="bg-white rounded-xl shadow-lg p-6 border border-aneupi-border-light hover:shadow-xl transition-shadow duration-300 transform hover:-translate-y-1 cursor-pointer group">
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-aneupi-text-secondary font-medium group-hover:text-aneupi-primary">Pagos Pendientes</h3>
-            <div className="p-2 bg-aneupi-secondary/20 rounded-lg group-hover:bg-aneupi-primary group-hover:text-white transition-colors border border-aneupi-secondary/30">
-              <FaClock className="text-aneupi-primary group-hover:text-white" />
-            </div>
+            <div className="p-2 bg-aneupi-secondary/20 rounded-lg text-aneupi-primary"><FaClock /></div>
           </div>
-          <p className="text-3xl font-bold text-aneupi-primary">{totalesGlobales.pagosPendientes}</p>
-          <p className="text-sm text-aneupi-text-muted mt-2">Requieren atención</p>
-          <div className="mt-4 flex items-center text-aneupi-primary text-sm font-medium group-hover:text-aneupi-primary-dark">
-            <span>Gestionar pagos</span>
-          </div>
+          <p className="text-3xl font-bold text-aneupi-primary">{totales.pagosPendientes}</p>
         </div>
       </div>
 
-      <Tabs activeTab={activeTab} setActiveTab={setActiveTab} />
+      <Tabs activeTab={activeTab} setActiveTab={setActiveTab} esAdmin={esAdmin}/>
 
       <div className="bg-white rounded-xl shadow-lg overflow-hidden border border-aneupi-border-light">
-        {activeTab === "Accionistas" && (
+        {activeTab === "Accionistas" && esAdmin && (
           <AccionistasTab 
             searchTerm={searchTerm} setSearchTerm={setSearchTerm} selectedYear={selectedYear} setSelectedYear={setSelectedYear}
             exportandoExcel={exportandoExcel} exportarAExcel={exportarAExcel} filteredAccionistas={filteredAccionistas}
-            multasPorAnio={multasPorAnio} pagosDiariosData={pagosDiariosData} anios={anios} anioInicio={anioInicio} anioFin={anioFin}
-            sortConfigAccionistas={sortConfigAccionistas} handleSortAccionistas={handleSortAccionistas}
+            multasPorAnio={multasPorAnio} pagosDiariosData={pagosData} anios={anios}
             obtenerAccionistasPaginaActual={obtenerAccionistasPaginaActual} calcularTotalMultas={calcularTotalMultas}
-            calcularTotalMultasAccionista={(i) => (multasPorAnio["2023"]?.[i]||0) + (multasPorAnio["2024"]?.[i]||0) + (multasPorAnio["2025"]?.[i]||0)}
             paginaActualAccionistas={paginaActualAccionistas} setPaginaActualAccionistas={setPaginaActualAccionistas}
-            totalPaginasAccionistas={totalPaginasAccionistas} itemsPorPaginaAccionistas={itemsPorPaginaAccionistas}
-            setItemsPorPaginaAccionistas={setItemsPorPaginaAccionistas} totalItems={filteredAccionistas.length}
-            obtenerAccionistaPorId={obtenerAccionistaPorId} totalAccionistas={totalesGlobales.totalAccionistas}
+            totalPaginasAccionistas={Math.ceil(filteredAccionistas.length / itemsPorPaginaAccionistas) || 1}
+            itemsPorPaginaAccionistas={itemsPorPaginaAccionistas} setItemsPorPaginaAccionistas={setItemsPorPaginaAccionistas} 
+            totalItems={filteredAccionistas.length} obtenerAccionistaPorId={obtenerAccionistaPorId} totalAccionistas={totales.totalAccionistas}
           />
         )}
+        
+        {activeTab === "Accionistas" && !esAdmin && (<div className="p-10 text-center text-gray-500">No tienes permisos.</div>)}
 
+        {/* SOLUCIÓN ERROR PANTALLA BLANCA: Ahora 'dias' se pasa correctamente */}
         {activeTab === "Pago de multas" && (
           <PagosTab 
-            accionistaSeleccionado={accionistaSeleccionado} setAccionistaSeleccionado={setAccionistaSeleccionado}
+            accionistaSeleccionado={accionistaSeleccionado} 
+            setAccionistaSeleccionado={esAdmin ? setAccionistaSeleccionado : undefined}
             viewTypePagos={viewTypePagos} setViewTypePagos={setViewTypePagos} selectedYearPagos={selectedYearPagos}
             setSelectedYearPagos={setSelectedYearPagos} selectedMonth={selectedMonth} setSelectedMonth={setSelectedMonth}
             selectedDay={selectedDay} setSelectedDay={setSelectedDay} meses={meses} dias={dias} anios={anios}
@@ -532,93 +260,31 @@ export default function AccionistasAneupiPortal() {
             handleSeleccionarAccionistaDesdePagos={handleSeleccionarAccionistaDesdePagos} sortConfigPagos={sortConfigPagos}
             handleSortPagos={handleSortPagos} obtenerPagosPaginaActual={obtenerPagosPaginaActual}
             calcularTotalMontosPaginaActual={calcularTotalMontosPaginaActual} calcularTotalPagosFiltrados={calcularTotalPagosFiltrados}
-            paginaActualPagos={paginaActualPagos} setPaginaActualPagos={setPaginaActualPagos} totalPaginasPagos={totalPaginasPagos}
+            paginaActualPagos={paginaActualPagos} setPaginaActualPagos={setPaginaActualPagos} 
+            totalPaginasPagos={Math.ceil(pagosFiltrados.length / itemsPorPaginaPagos) || 1}
             itemsPorPaginaPagos={itemsPorPaginaPagos} setItemsPorPaginaPagos={setItemsPorPaginaPagos}
-            totalItems={pagosFiltrados.length} totalAccionistas={totalesGlobales.totalAccionistas}
+            totalItems={pagosFiltrados.length} totalAccionistas={totales.totalAccionistas}
+            esAdmin={esAdmin} usuarioActual={usuarioActual}
           />
         )}
 
         {activeTab === "Estadísticas" && (
           <EstadisticasTab 
             selectedYearStats={selectedYearStats} setSelectedYearStats={setSelectedYearStats} resumenMensual={resumenMensual}
-            estadisticasAvanzadas={estadisticasAvanzadas} totalAccionistas={totalesGlobales.totalAccionistas}
-            pagos={pagosDiariosData} anios={anios}
+            estadisticasAvanzadas={estadisticasAvanzadas} totalAccionistas={totales.totalAccionistas}
+            pagos={pagosData} anios={anios}
           />
         )}
 
-        {activeTab === "Reportes" && <ReportesTab totalAccionistas={totalesGlobales.totalAccionistas} pagos={pagosDiariosData} accionistas={accionistasData} anios={anios} />}
+        {activeTab === "Reportes" && (
+             <ReportesTab 
+                totalAccionistas={totales.totalAccionistas} pagos={pagosFiltrados} accionistas={accionistasData} anios={anios} 
+            />
+        )}
       </div>
 
-      {/* Información adicional (MANTENIDA) */}
-      <div className="bg-white rounded-xl shadow-lg p-7 mb-10 border-2 border-aneupi-primary">
-        <h3 className="text-xl font-bold text-aneupi-primary mb-6 flex items-center gap-2">
-          <FaInfoCircle className="text-aneupi-primary" />
-          Información del Sistema ANEUPI
-        </h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-          <div className="border-l-4 border-aneupi-primary pl-5">
-            <h4 className="font-semibold text-aneupi-primary mb-3">Características Técnicas</h4>
-            <ul className="space-y-3 text-aneupi-text-secondary">
-              <li className="flex items-center gap-2">
-                <FaDatabase className="text-aneupi-primary text-sm" />
-                <span>Base de datos: {totalesGlobales.totalAccionistas} accionistas principales</span>
-              </li>
-              <li className="flex items-center gap-2">
-                <FaChartBar className="text-aneupi-primary text-sm" />
-                <span>Paginación avanzada: Navegación por lotes de datos</span>
-              </li>
-              <li className="flex items-center gap-2">
-                <FaInfo className="text-aneupi-primary text-sm" />
-                <span>Búsqueda inteligente: Nombre, código, email, departamento</span>
-              </li>
-              <li className="flex items-center gap-2">
-                <FaMoneyCheckAlt className="text-aneupi-primary text-sm" />
-                <span>Ordenamiento múltiple: Por nombre, fecha, monto</span>
-              </li>
-            </ul>
-          </div>
-          <div className="border-l-4 border-aneupi-primary pl-5">
-            <h4 className="font-semibold text-aneupi-primary mb-3">Soporte y Contacto</h4>
-            <ul className="space-y-3 text-aneupi-text-secondary">
-              <li className="flex items-center gap-2">
-                <FaUniversity className="text-aneupi-primary text-sm" />
-                <span>Banco ANEUPI: Sistema exclusivo para accionistas</span>
-              </li>
-              <li className="flex items-center gap-2">
-                <FaBell className="text-aneupi-primary text-sm" />
-                <span>Soporte 24/7: (01) 800-ANEUPI (263874)</span>
-              </li>
-              <li className="flex items-center gap-2">
-                <FaEnvelope className="text-aneupi-primary text-sm" />
-                <span>Email: soporte.multas@aneupi.com</span>
-              </li>
-              <li className="flex items-center gap-2">
-                <FaCalendarAlt className="text-aneupi-primary text-sm" />
-                <span>Horario atención: L-V 7:00 AM - 10:00 PM</span>
-              </li>
-            </ul>
-          </div>
-        </div>
-      </div>
-
-      {/* Footer (MANTENIDO Y ACTUALIZADO) */}
       <div className="text-center text-aneupi-text-muted text-sm border-t-2 border-aneupi-primary pt-8 pb-4">
-        <p>© 2024 Sistema de Gestión de Multas - Banco ANEUPI. Todos los derechos reservados.</p>
-        <p className="mt-3">Versión 4.0.0 • Sistema especializado para la gestión y seguimiento de multas aplicadas a los accionistas • Última actualización: Diciembre 2024</p>
-        <div className="flex flex-wrap justify-center gap-4 mt-4">
-          <span className="flex items-center gap-1">
-            <FaDatabase className="text-aneupi-primary" /> {totalesGlobales.totalAccionistas} Accionistas
-          </span>
-          <span className="flex items-center gap-1">
-            <FaMoneyCheckAlt className="text-aneupi-primary" /> {totalesGlobales.totalTransacciones} Transacciones
-          </span>
-          <span className="flex items-center gap-1">
-            <FaChartBar className="text-aneupi-primary" /> Estadísticas en tiempo real
-          </span>
-          <span className="flex items-center gap-1">
-            <FaShieldAlt className="text-aneupi-primary" /> Pagos seguros ANEUPI
-          </span>
-        </div>
+        <p>© 2026 Banco ANEUPI.</p>
       </div>
     </div>
   );

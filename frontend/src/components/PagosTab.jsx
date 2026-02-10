@@ -1,12 +1,15 @@
-import { FaCalendarWeek, FaCalendarDay, FaCalendarAlt, FaUser, FaEnvelope, FaMobileAlt, FaWindowClose, FaClipboardList, FaCheckCircle, FaClock, FaTimesCircle, FaCogs, FaEye, FaSortUp, FaSortDown, FaBell, FaDollarSign, FaDatabase } from "react-icons/fa";
+import { useState } from "react";
+import { 
+  FaCalendarWeek, FaCalendarAlt, FaCheckCircle, FaClock, FaTimesCircle, 
+  FaCogs, FaDatabase, FaFileUpload, FaCheck, FaTimes, FaHistory, FaEye 
+} from "react-icons/fa";
 import Paginacion from "./Paginacion";
 import AbonosModal from "./AbonosModal";
-import { generarAbonosParaMulta } from "../utils/dataGenerators";
-import { useState, useEffect } from "react";
+import SubirComprobanteModal from "./SubirComprobanteModal";
+import { toast } from "sonner"; 
+import { pagosService } from "../services"; 
 
 const PagosTab = ({
-  accionistaSeleccionado,
-  setAccionistaSeleccionado,
   viewTypePagos,
   setViewTypePagos,
   selectedYearPagos,
@@ -16,176 +19,202 @@ const PagosTab = ({
   selectedDay,
   setSelectedDay,
   meses,
-  dias,
   anios,
-  estadisticasAccionista,
-  pagosFiltrados,
-  mapaAccionistas,
-  handleSeleccionarAccionistaDesdePagos,
-  sortConfigPagos,
-  handleSortPagos,
+  pagosFiltrados, 
   obtenerPagosPaginaActual,
-  calcularTotalMontosPaginaActual,
-  calcularTotalPagosFiltrados,
   paginaActualPagos,
   setPaginaActualPagos,
   totalPaginasPagos,
   itemsPorPaginaPagos,
   setItemsPorPaginaPagos,
   totalItems,
-  totalAccionistas
+  esAdmin, 
+  usuarioActual
 }) => {
   const [modalAbonos, setModalAbonos] = useState({ isOpen: false, multa: null, abonos: [] });
-  
-  // --- ESTADOS BACKEND REAL (SOLO LECTURA) ---
-  const [pagosReales, setPagosReales] = useState([]);
-  const [usarDatosReales, setUsarDatosReales] = useState(false);
+  const [modalSubida, setModalSubida] = useState({ isOpen: false, pago: null });
 
-  // Cargar datos al iniciar
-  useEffect(() => {
-    cargarDatosReales();
-  }, []);
-
-  const cargarDatosReales = () => {
-    fetch('http://localhost:3000/api/pagos')
-      .then(res => res.json())
-      .then(data => setPagosReales(Array.isArray(data) ? data : []))
-      .catch(err => console.error("Error pagos:", err));
-  };
-
-  // Filtrado de datos (Mantenemos igual)
-  const pagosRealesFiltrados = pagosReales.filter(pago => {
-    if (!usarDatosReales) return false;
-    const fecha = new Date(pago.fechaRegistro || pago.fechaIngresoMulta);
-    const anioOk = selectedYearPagos === "Todos" || fecha.getFullYear().toString() === selectedYearPagos;
-    const nombreMes = meses[fecha.getMonth()];
-    const mesOk = selectedMonth === "Todos" || nombreMes === selectedMonth;
-    const diaOk = selectedDay === "Todos" || fecha.getDate() === Number(selectedDay);
-    return anioOk && mesOk && (viewTypePagos === "mensual" ? true : diaOk);
-  });
-
-  const totalDineroRealFiltrado = pagosRealesFiltrados.reduce((sum, p) => sum + Number(p.monto), 0);
-  const totalPaginasReales = Math.ceil(pagosRealesFiltrados.length / itemsPorPaginaPagos);
-
-  const obtenerDatosAMostrar = () => {
-    if (!usarDatosReales) return obtenerPagosPaginaActual();
-    const inicio = (paginaActualPagos - 1) * itemsPorPaginaPagos;
-    const fin = inicio + itemsPorPaginaPagos;
-    return pagosRealesFiltrados.slice(inicio, fin);
+  // Función para ver comprobante
+  const verComprobante = (url) => {
+    if (!url) return;
+    const baseUrl = "http://localhost:3000/"; 
+    const finalUrl = url.startsWith("http") ? url : `${baseUrl}${url}`;
+    window.open(finalUrl, "_blank");
   };
 
   const renderEstado = (estado) => {
     switch(estado) {
-      case "Completado": return <FaCheckCircle className="text-xs" />;
-      case "Pendiente": return <FaClock className="text-xs" />;
-      case "Rechazado": return <FaTimesCircle className="text-xs" />;
-      default: return <FaCogs className="text-xs" />;
+      case "Completado": return <span className="inline-flex items-center gap-1 bg-green-100 text-green-800 px-2 py-1 rounded-md text-xs font-bold border border-green-200"><FaCheckCircle/> Completado</span>;
+      case "Pendiente": return <span className="inline-flex items-center gap-1 bg-yellow-100 text-yellow-800 px-2 py-1 rounded-md text-xs font-bold border border-yellow-200"><FaClock/> Pendiente</span>;
+      case "Rechazado": return <span className="inline-flex items-center gap-1 bg-red-100 text-red-800 px-2 py-1 rounded-md text-xs font-bold border border-red-200"><FaTimesCircle/> Rechazado</span>;
+      case "En_proceso": return <span className="inline-flex items-center gap-1 bg-blue-100 text-blue-800 px-2 py-1 rounded-md text-xs font-bold border border-blue-200"><FaHistory/> Revisión</span>;
+      default: return <span className="inline-flex items-center gap-1 bg-gray-100 text-gray-700 px-2 py-1 rounded-full text-xs font-bold"><FaCogs/> {estado}</span>;
     }
   };
 
+  const handleAprobarPago = async (pagoId) => {
+    if(!confirm("¿Aprobar pago?")) return;
+    try {
+        toast.info("Procesando...");
+        await pagosService.updateEstado(pagoId, 'Completado');
+        toast.success("Aprobado");
+        window.location.reload(); 
+    } catch (error) {
+        toast.error("Error al procesar");
+    }
+  };
+
+  const handleRechazarPago = async (pagoId) => {
+    if(!confirm("¿Rechazar pago?")) return;
+    try {
+        await pagosService.updateEstado(pagoId, 'Rechazado');
+        toast.error("Rechazado");
+        window.location.reload(); 
+    } catch (error) {
+        toast.error("Error al procesar");
+    }
+  };
+
+  const handleSubirComprobante = (pago) => {
+    setModalSubida({ isOpen: true, pago });
+  };
+
+  const handleUploadSuccess = () => {
+    setModalSubida({ isOpen: false, pago: null });
+    window.location.reload();
+  };
+
+  const datosTabla = obtenerPagosPaginaActual(); 
+  const totalMontoPagina = datosTabla.reduce((sum, p) => sum + Number(p.monto || 0), 0);
+  const totalMontoFiltrado = pagosFiltrados.reduce((sum, p) => sum + Number(p.monto || 0), 0);
+
   return (
     <>
+      {/* --- ENCABEZADO AZUL OSCURO (RESTAURADO) --- */}
       <div className="bg-aneupi-primary text-white p-7 border-b border-aneupi-primary-dark">
-        {/* Encabezado */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-8">
           <div>
             <h2 className="text-2xl font-bold mb-3">
-              {accionistaSeleccionado ? `Historial de Pagos - ${accionistaSeleccionado.nombre}` : "Registro de Pagos de Multas - ANEUPI"}
+              {esAdmin ? "Gestión de Pagos y Multas" : "Registro de Pagos de Multas - ANEUPI"}
             </h2>
-            <p className="text-white/80">
-              {accionistaSeleccionado ? `Historial completo de pagos` : `Control de pagos (${usarDatosReales ? 'Base de Datos PostgreSQL' : 'Simulación'})`}
+            <p className="text-white/80 flex items-center gap-2">
+              <FaDatabase className="text-sm" /> 
+              {esAdmin 
+                ? "Administra, aprueba o rechaza los reportes de pago." 
+                : "Control de pagos (Base de Datos PostgreSQL)."}
             </p>
           </div>
-          <div className="flex items-center gap-4">
-            {/* BOTÓN REGISTRAR ELIMINADO */}
-            
-            <button onClick={() => { setUsarDatosReales(!usarDatosReales); setPaginaActualPagos(1); }} className={`flex items-center gap-2 px-4 py-2 rounded-lg font-bold transition-all border ${usarDatosReales ? 'bg-green-600 border-green-400 text-white shadow-lg' : 'bg-white/10 border-white/20 text-white/70 hover:bg-white/20'}`}>
-              <FaDatabase className={usarDatosReales ? 'animate-pulse' : ''} /> {usarDatosReales ? "MODO REAL" : "MODO MOCK"}
-            </button>
-
-            {!accionistaSeleccionado && (
-              <div className="flex gap-2">
-                <button onClick={() => { setViewTypePagos("mensual"); setSelectedDay("Todos"); }} className={`px-4 py-2 rounded-lg transition-all border ${viewTypePagos === "mensual" ? "bg-white/20 text-white font-bold border-white/50" : "bg-white/5 text-white/50 border-white/10"}`}>
-                  <FaCalendarWeek className="inline mr-2" /> Mensual
-                </button>
-              </div>
-            )}
+          
+          {/* FILTROS CON ESTILO TRANSPARENTE/BLANCO */}
+          <div className="flex gap-4">
+             <div className="relative">
+                <select 
+                  value={selectedYearPagos} 
+                  onChange={(e) => setSelectedYearPagos(e.target.value)} 
+                  className="bg-white/20 border border-white/30 text-white text-sm rounded-lg block w-40 p-2.5 focus:outline-none focus:bg-white/30 cursor-pointer"
+                >
+                  <option value="Todos" className="text-black">Año: Todos</option>
+                  {anios.map(anio => <option key={anio} value={anio} className="text-black">{anio}</option>)}
+                </select>
+                <FaCalendarAlt className="absolute right-3 top-3 text-white/70 text-xs pointer-events-none"/>
+             </div>
+             <div className="relative">
+                <select 
+                  value={selectedMonth} 
+                  onChange={(e) => setSelectedMonth(e.target.value)} 
+                  className="bg-white/20 border border-white/30 text-white text-sm rounded-lg block w-40 p-2.5 focus:outline-none focus:bg-white/30 cursor-pointer"
+                >
+                  <option value="Todos" className="text-black">Mes: Todos</option>
+                  {meses.map(mes => <option key={mes} value={mes} className="text-black">{mes}</option>)}
+                </select>
+                <FaCalendarAlt className="absolute right-3 top-3 text-white/70 text-xs pointer-events-none"/>
+             </div>
           </div>
         </div>
-        
-        {/* Filtros */}
-        {!accionistaSeleccionado && (
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-            <div className="relative">
-              <select value={selectedYearPagos} onChange={(e) => setSelectedYearPagos(e.target.value)} className="w-full bg-white/20 border border-white/30 rounded-lg px-9 py-2.5 text-white appearance-none outline-none cursor-pointer">
-                <option value="Todos" className="text-black">Todos los años</option>
-                {anios.map(anio => <option key={anio} value={anio} className="text-black">{anio}</option>)}
-              </select>
-              <FaCalendarAlt className="absolute right-4 top-1/2 -translate-y-1/2 text-white/70" />
-            </div>
-            <div className="relative">
-              <select value={selectedMonth} onChange={(e) => setSelectedMonth(e.target.value)} className="w-full bg-white/20 border border-white/30 rounded-lg px-9 py-2.5 text-white appearance-none outline-none cursor-pointer">
-                <option value="Todos" className="text-black">Todos los meses</option>
-                {meses.map(mes => <option key={mes} value={mes} className="text-black">{mes}</option>)}
-              </select>
-              <FaCalendarAlt className="absolute right-4 top-1/2 -translate-y-1/2 text-white/70" />
-            </div>
-          </div>
-        )}
       </div>
 
-      {/* TABLA DE DATOS */}
-      <div className="overflow-x-auto min-h-[400px]">
-        <table className="w-full">
-          <thead className="bg-aneupi-bg-tertiary">
+      {/* --- TABLA DE DATOS --- */}
+      <div className="overflow-x-auto min-h-[400px] bg-white shadow-sm">
+        <table className="w-full text-sm text-left">
+          {/* Cabecera de la tabla en gris claro para contraste profesional */}
+          <thead className="text-xs text-aneupi-primary uppercase bg-gray-100 border-b border-gray-200">
             <tr>
-              <th className="py-4 px-6 text-left text-aneupi-primary font-bold border-b-2 border-aneupi-primary/20">ID</th>
-              <th className="py-4 px-6 text-left text-aneupi-primary font-bold border-b-2 border-aneupi-primary/20">Accionista</th>
-              <th className="py-4 px-6 text-left text-aneupi-primary font-bold border-b-2 border-aneupi-primary/20">Fecha</th>
-              <th className="py-4 px-6 text-left text-aneupi-primary font-bold border-b-2 border-aneupi-primary/20">Descripción</th>
-              <th className="py-4 px-6 text-left text-aneupi-primary font-bold border-b-2 border-aneupi-primary/20">Monto</th>
-              <th className="py-4 px-6 text-left text-aneupi-primary font-bold border-b-2 border-aneupi-primary/20">Estado</th>
+              <th className="px-6 py-4 font-bold">ID</th>
+              <th className="px-6 py-4 font-bold">{esAdmin ? "Accionista" : "Concepto"}</th>
+              <th className="px-6 py-4 font-bold">Fecha</th>
+              <th className="px-6 py-4 font-bold">Estado</th>
+              <th className="px-6 py-4 font-bold">Monto</th>
+              <th className="px-6 py-4 font-bold text-center">Evidencia</th>
+              <th className="px-6 py-4 font-bold text-center">Acciones</th>
             </tr>
           </thead>
           <tbody>
-            {obtenerDatosAMostrar().map((pago, index) => (
-              <tr key={pago.id} className={`hover:bg-aneupi-primary/5 transition-colors ${index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}`}>
-                <td className="py-4 px-6 border-b border-gray-200 font-bold text-gray-700">#{pago.id}</td>
-                <td className="py-4 px-6 border-b border-gray-200">
-                  <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-full bg-aneupi-primary text-white flex items-center justify-center text-xs font-bold">
-                      {pago.accionista?.nombre?.charAt(0) || 'A'}
-                    </div>
-                    <div>
-                      <p className="font-medium text-gray-800 text-sm">{pago.accionista?.nombre || 'Accionista Desconocido'}</p>
-                      <p className="text-xs text-gray-500 font-mono bg-gray-100 px-1 rounded inline-block mt-0.5">
-                        {pago.referencia || 'Sin Ref'}
-                      </p>
-                    </div>
+            {datosTabla.map((pago) => (
+              <tr key={pago.id} className="bg-white border-b border-gray-100 hover:bg-gray-50 transition-colors">
+                <td className="px-6 py-4 font-mono text-gray-400">#{pago.id}</td>
+                <td className="px-6 py-4">
+                  <div className="flex flex-col">
+                    <span className="font-bold text-gray-800 text-sm">
+                        {esAdmin ? (pago.accionista?.nombre || "Usuario") : pago.descripcion}
+                    </span>
+                    <span className="text-xs text-gray-500 mt-0.5">{esAdmin ? pago.descripcion : pago.referencia}</span>
                   </div>
                 </td>
-                <td className="py-4 px-6 border-b border-gray-200 text-sm text-gray-600">
+                <td className="px-6 py-4 text-gray-600">
                   {new Date(pago.fechaRegistro || pago.fechaIngresoMulta).toLocaleDateString()}
                 </td>
-                <td className="py-4 px-6 border-b border-gray-200 text-sm text-gray-600 max-w-[200px] truncate">
-                  {pago.descripcion}
+                <td className="px-6 py-4">{renderEstado(pago.estado)}</td>
+                <td className="px-6 py-4 font-bold text-gray-800">${Number(pago.monto).toFixed(2)}</td>
+                
+                {/* COLUMNA EVIDENCIA (BOTÓN AZUL CLARO) */}
+                <td className="px-6 py-4 text-center">
+                   {pago.comprobante ? (
+                      <button 
+                        onClick={() => verComprobante(pago.comprobante)}
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 text-blue-600 rounded-lg text-xs font-bold hover:bg-blue-100 transition-colors border border-blue-200"
+                      >
+                        <FaEye /> Ver Foto
+                      </button>
+                   ) : (
+                      <span className="text-gray-400 text-xs italic bg-gray-100 px-2 py-1 rounded">Sin archivo</span>
+                   )}
                 </td>
-                <td className="py-4 px-6 border-b border-gray-200 font-bold text-aneupi-primary">
-                  ${Number(pago.monto).toFixed(2)}
-                </td>
-                <td className="py-4 px-6 border-b border-gray-200">
-                  <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold ${
-                    pago.estado === 'Completado' ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'
-                  }`}>
-                    {renderEstado(pago.estado)} {pago.estado}
-                  </span>
+
+                <td className="px-6 py-4 text-center">
+                  <div className="flex justify-center items-center gap-2">
+                    
+                    {/* ADMIN: APROBAR / RECHAZAR */}
+                    {esAdmin && (pago.estado === "Pendiente" || pago.estado === "En_proceso") && (
+                        <>
+                            <button onClick={() => handleAprobarPago(pago.id)} className="flex items-center gap-1 px-3 py-1.5 bg-white border border-green-500 text-green-600 rounded hover:bg-green-50 text-xs font-bold shadow-sm transition-all" title="Aprobar">
+                                <FaCheck /> Aprobar
+                            </button>
+                            <button onClick={() => handleRechazarPago(pago.id)} className="flex items-center gap-1 px-3 py-1.5 bg-white border border-red-500 text-red-600 rounded hover:bg-red-50 text-xs font-bold shadow-sm transition-all" title="Rechazar">
+                                <FaTimes /> Rechazar
+                            </button>
+                        </>
+                    )}
+
+                    {/* USUARIO: PAGAR */}
+                    {!esAdmin && (pago.estado === "Pendiente" || pago.estado === "Rechazado") && (
+                        <button 
+                            onClick={() => handleSubirComprobante(pago)}
+                            className="flex items-center gap-2 px-4 py-2 bg-aneupi-primary text-white rounded-lg text-xs font-bold hover:bg-aneupi-primary-dark shadow-md transform hover:-translate-y-0.5 transition-all"
+                        >
+                            <FaFileUpload /> {pago.estado === "Rechazado" ? "Reintentar" : "Pagar"}
+                        </button>
+                    )}
+                  </div>
                 </td>
               </tr>
             ))}
-            {obtenerDatosAMostrar().length === 0 && (
+            {datosTabla.length === 0 && (
               <tr>
-                <td colSpan="6" className="py-8 text-center text-gray-400">
-                  No se encontraron registros {usarDatosReales ? 'en la Base de Datos' : 'en la simulación'}.
+                <td colSpan="7" className="py-12 text-center text-gray-400 bg-gray-50/30">
+                   <div className="flex flex-col items-center justify-center gap-2">
+                      <FaDatabase className="text-4xl opacity-20"/>
+                      <p>No se encontraron registros en la Base de Datos.</p>
+                   </div>
                 </td>
               </tr>
             )}
@@ -197,19 +226,13 @@ const PagosTab = ({
         tipo="pagos"
         paginaActual={paginaActualPagos}
         setPaginaActual={setPaginaActualPagos}
-        totalPaginas={usarDatosReales ? totalPaginasReales : totalPaginasPagos}
+        totalPaginas={totalPaginasPagos}
         itemsPorPagina={itemsPorPaginaPagos}
         setItemsPorPagina={setItemsPorPaginaPagos}
-        totalItems={usarDatosReales ? pagosRealesFiltrados.length : totalItems}
-        itemsPaginaActual={obtenerDatosAMostrar().length}
-        calcularTotalMontosPaginaActual={() => 
-          usarDatosReales 
-            ? obtenerDatosAMostrar().reduce((sum, p) => sum + Number(p.monto), 0)
-            : calcularTotalMontosPaginaActual()
-        }
-        calcularTotalPagosFiltrados={() => 
-          usarDatosReales ? totalDineroRealFiltrado : calcularTotalPagosFiltrados()
-        }
+        totalItems={totalItems}
+        itemsPaginaActual={datosTabla.length}
+        calcularTotalMontosPaginaActual={() => totalMontoPagina}
+        calcularTotalPagosFiltrados={() => totalMontoFiltrado}
       />
 
       <AbonosModal
@@ -217,6 +240,13 @@ const PagosTab = ({
         onClose={() => setModalAbonos({ isOpen: false, multa: null, abonos: [] })}
         multa={modalAbonos.multa}
         abonos={modalAbonos.abonos}
+      />
+
+      <SubirComprobanteModal 
+        isOpen={modalSubida.isOpen}
+        onClose={() => setModalSubida({ isOpen: false, pago: null })}
+        pago={modalSubida.pago}
+        onUploadSuccess={handleUploadSuccess}
       />
     </>
   );

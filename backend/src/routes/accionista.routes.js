@@ -1,13 +1,11 @@
+import { Router } from "express";
 
-import { Router } from 'express'
-import { getAccionistas, getAccionistaById, createPago, getPagos } from '../controllers/accionista.controller.js'
+import { getAccionistas, getAccionistaById } from "../controllers/accionista.controller.js";
 
-const router = Router()
+const router = Router();
 
-router.get('/accionistas', getAccionistas)
-router.get('/accionistas/:id', getAccionistaById)
 
-router.get('/pagos', getPagos)
-router.post('/pagos', createPago)
+router.get("/", getAccionistas);
+router.get("/:id", getAccionistaById);
 
-export default router
+export default router;

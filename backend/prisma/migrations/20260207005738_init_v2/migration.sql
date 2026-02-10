@@ -1,9 +1,6 @@
-/*
-  Warnings:
+-- CreateEnum
+CREATE TYPE "RolSistema" AS ENUM ('USER', 'ADMIN', 'SUPERADMIN');
 
-  - You are about to drop the `Usuario` table. If the table is not empty, all the data it contains will be lost.
-
-*/
 -- CreateEnum
 CREATE TYPE "TipoAccionista" AS ENUM ('Fundador', 'Inversionista', 'Accionista Mayoritario', 'Accionista Minoritario');
 
@@ -19,9 +16,6 @@ CREATE TYPE "PrioridadNotificacion" AS ENUM ('alta', 'media', 'baja');
 -- CreateEnum
 CREATE TYPE "TipoNotificacion" AS ENUM ('pago_pendiente', 'recordatorio', 'alerta', 'informacion');
 
--- DropTable
-DROP TABLE "Usuario";
-
 -- CreateTable
 CREATE TABLE "accionistas" (
     "id" SERIAL NOT NULL,
@@ -29,6 +23,8 @@ CREATE TABLE "accionistas" (
     "telefono" TEXT,
     "email" TEXT NOT NULL,
     "codigo" TEXT NOT NULL,
+    "password" TEXT NOT NULL,
+    "rol" "RolSistema" NOT NULL DEFAULT 'USER',
     "fechaIngreso" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "direccion" TEXT,
     "tipoAccionista" "TipoAccionista" NOT NULL,
@@ -91,6 +87,18 @@ CREATE TABLE "notificaciones" (
     CONSTRAINT "notificaciones_pkey" PRIMARY KEY ("id")
 );
 
+-- CreateTable
+CREATE TABLE "auditorias" (
+    "id" SERIAL NOT NULL,
+    "fecha" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "accion" TEXT NOT NULL,
+    "detalle" TEXT,
+    "usuario" TEXT,
+    "accionistaId" INTEGER,
+
+    CONSTRAINT "auditorias_pkey" PRIMARY KEY ("id")
+);
+
 -- CreateIndex
 CREATE UNIQUE INDEX "accionistas_email_key" ON "accionistas"("email");
 
@@ -108,3 +116,6 @@ ALTER TABLE "abonos" ADD CONSTRAINT "abonos_pagoId_fkey" FOREIGN KEY ("pagoId") 
 
 -- AddForeignKey
 ALTER TABLE "notificaciones" ADD CONSTRAINT "notificaciones_accionistaId_fkey" FOREIGN KEY ("accionistaId") REFERENCES "accionistas"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "auditorias" ADD CONSTRAINT "auditorias_accionistaId_fkey" FOREIGN KEY ("accionistaId") REFERENCES "accionistas"("id") ON DELETE SET NULL ON UPDATE CASCADE;

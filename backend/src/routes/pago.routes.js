@@ -1,12 +1,12 @@
 import { Router } from "express";
-import { getPagos, createPago } from "../controllers/pago.controller.js";
+import { getPagos, createPago, updateEstadoPago, uploadComprobante } from "../controllers/pago.controller.js";
+import { upload } from "../middleware/upload.js"; 
 
 const router = Router();
 
-// Ruta para obtener todos los pagos
 router.get("/", getPagos);
-
-// Ruta para crear un pago nuevo
 router.post("/", createPago);
+router.put("/:id/estado", updateEstadoPago);
+router.post("/:id/comprobante", upload.single("comprobante"), uploadComprobante);
 
 export default router;
