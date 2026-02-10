@@ -40,7 +40,7 @@ const Header = ({
         </div>
       </div>
 
-      <div className="bg-aneupi-secondary/10 border border-aneupi-secondary/30 rounded-xl p-6 shadow-sm">
+      <div className="bg-white rounded-xl shadow-lg p-6 mb-6 border border-aneupi-border-light">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div className="flex items-center gap-3">
             <FaBuilding className="text-aneupi-primary text-xl" />
