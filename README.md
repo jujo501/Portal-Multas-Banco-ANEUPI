@@ -1,68 +1,72 @@
 # Portal Multas Banco ANEUPI - Proyecto Completo
 
-Sistema integral de gestión de multas para accionistas del Banco ANEUPI.
+Sistema integral de gestión de multas y control de accionistas para el Banco ANEUPI.
 
-## Estructura del Proyecto
+## 📂 Estructura del Proyecto
 
-```
-Portal-Multas-Banco-ANEUPI-Full/
-├── frontend/          # Aplicación React + Vite
+```bash
+Portal-Multas-Banco-ANEUPI/
+├── frontend/          # Aplicación React + Vite (Cliente)
 │   ├── src/
 │   ├── public/
-│   ├── package.json
-│   └── ...
-└── backend/           # API Backend (preparado para desarrollo)
-    └── README.md
+│   └── package.json
+└── backend/           # API REST Node.js + Express + Prisma (Servidor)
+    ├── src/
+    ├── prisma/
+    └── package.json
 ```
-
-## Frontend
-
-- **Tecnología**: React + Vite + Tailwind CSS
-- **Estado**: ✅ Completamente funcional
-- **Características**:
-  - Sistema de gestión de accionistas
-  - Control de pagos y multas
-  - Generación de reportes (PDF, Excel, CSV)
-  - Estadísticas avanzadas con gráficos
-  - Interfaz responsive con fuente Georgia
-
-## Backend
-
-- **Estado**: 🚧 Preparado para desarrollo
-- **Ubicación**: `./backend/`
-
-## Instalación y Uso
-
-### Frontend
-```bash
-cd frontend
-npm install
-npm run dev
-```
-
-### Backend
-```bash
-cd backend
-# Pendiente de implementación
-```
-
-## Funcionalidades Principales
-
-1. **Gestión de Accionistas**: 20 accionistas con datos completos
-2. **Control de Pagos**: Estados completado/pendiente con abonos
-3. **Reportes Avanzados**: 4 tipos de reportes con filtros
-4. **Estadísticas**: Gráficos interactivos y métricas
-5. **Interfaz Profesional**: Diseño ANEUPI con fuente Georgia
-
-## Tecnologías
-
-- React 19.2.4
-- Vite
-- Tailwind CSS
-- Recharts (gráficos)
-- jsPDF (reportes PDF)
-- React Icons
 
 ---
 
-**Banco ANEUPI** - Sistema de Gestión de Multas v4.0.0
+## 🚀 Estado del Proyecto
+
+### **Frontend**
+**Estado:** ✅ **Completamente Funcional**
+- **Tecnología:** React + Vite + Tailwind CSS
+- **Características:**
+  - Sistema de gestión de accionistas.
+  - Interfaz de Usuario profesional (Fuente Georgia, Diseño Institucional).
+  - Buscadores integrados y filtros avanzados.
+  - Modales para subida de comprobantes y pagos parciales.
+  - Tableros de estadísticas con gráficos (Recharts).
+
+### **Backend**
+**Estado:** ✅ **Completamente Funcional**
+- **Tecnología:** Node.js + Express + PostgreSQL + Prisma ORM
+- **Características:**
+  - API RESTful completa.
+  - Conexión a Base de Datos PostgreSQL mediante Prisma.
+  - Lógica de **Abonos Parciales** (Cálculo automático de saldos).
+  - Gestión de archivos (Subida de evidencias/comprobantes).
+  - Controladores para validación y aprobación de pagos por parte del Administrador.
+
+---
+
+## 🛠️ Tecnologías Utilizadas
+
+| Categoría | Tecnologías |
+|-----------|-------------|
+| **Frontend** | React 19, Vite, Tailwind CSS, Recharts, React Icons, Axios, Sonner (Toasts) |
+| **Backend** | Node.js, Express, Prisma ORM, Multer (Archivos) |
+| **Base de Datos** | PostgreSQL |
+| **Herramientas** | Git, GitHub, VS Code |
+
+---
+
+## 💻 Instalación y Uso
+
+Sigue estos pasos para levantar el proyecto en tu máquina local. Necesitarás dos terminales abiertas.
+
+### 1. Configuración del Backend (Servidor)
+
+```bash
+cd backend
+
+# Instalar dependencias
+npm install
+
+# Configurar Base de Datos (Asegúrate de tener PostgreSQL corriendo y tu archivo .env configurado)
+npx prisma migrate dev --name init
+
+# Iniciar el Servidor
+npm run dev
