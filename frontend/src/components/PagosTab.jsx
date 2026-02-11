@@ -1,23 +1,24 @@
 import { useState } from "react";
 import { 
-  FaCalendarWeek, FaCalendarAlt, FaCheckCircle, FaClock, FaTimesCircle, 
-  FaCogs, FaDatabase, FaFileUpload, FaCheck, FaTimes, FaHistory, FaEye 
+  FaCalendarAlt, FaCheckCircle, FaClock, FaTimesCircle, 
+  FaCogs, FaDatabase, FaFileUpload, FaCheck, FaTimes, FaHistory, FaDownload, FaSearch, FaEye 
 } from "react-icons/fa";
 import Paginacion from "./Paginacion";
 import AbonosModal from "./AbonosModal";
 import SubirComprobanteModal from "./SubirComprobanteModal";
+import AprobarAbonoModal from "./AprobarAbonoModal"; 
 import { toast } from "sonner"; 
 import { pagosService } from "../services"; 
 
 const PagosTab = ({
+  searchTerm,
+  setSearchTerm,
   viewTypePagos,
   setViewTypePagos,
   selectedYearPagos,
   setSelectedYearPagos,
   selectedMonth,
   setSelectedMonth,
-  selectedDay,
-  setSelectedDay,
   meses,
   anios,
   pagosFiltrados, 
@@ -31,15 +32,39 @@ const PagosTab = ({
   esAdmin, 
   usuarioActual
 }) => {
-  const [modalAbonos, setModalAbonos] = useState({ isOpen: false, multa: null, abonos: [] });
+  // Modales
+  const [modalAbonos, setModalAbonos] = useState({ isOpen: false, pago: null });
   const [modalSubida, setModalSubida] = useState({ isOpen: false, pago: null });
+  const [modalAprobar, setModalAprobar] = useState({ isOpen: false, pago: null }); 
 
-  // Función para ver comprobante
-  const verComprobante = (url) => {
+  // --- FUNCIÓN: DESCARGAR COMPROBANTE DIRECTAMENTE ---
+  const descargarComprobante = async (url, nombreBase) => {
     if (!url) return;
-    const baseUrl = "http://localhost:3000/"; 
-    const finalUrl = url.startsWith("http") ? url : `${baseUrl}${url}`;
-    window.open(finalUrl, "_blank");
+    const toastId = toast.loading("Descargando comprobante...");
+    
+    try {
+        const baseUrl = "http://localhost:3000/"; 
+        const finalUrl = url.startsWith("http") ? url : `${baseUrl}${url}`;
+
+        const response = await fetch(finalUrl);
+        const blob = await response.blob();
+        
+        const link = document.createElement('a');
+        link.href = window.URL.createObjectURL(blob);
+        const extension = url.split('.').pop() || 'jpg';
+        link.download = `Comprobante_${nombreBase}_${Date.now()}.${extension}`;
+        
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        toast.dismiss(toastId);
+        toast.success("Descarga iniciada");
+    } catch (e) {
+        console.error(e);
+        toast.dismiss(toastId);
+        toast.error("Error al descargar, abriendo en pestaña...");
+        window.open(url, '_blank');
+    }
   };
 
   const renderEstado = (estado) => {
@@ -52,35 +77,31 @@ const PagosTab = ({
     }
   };
 
-  const handleAprobarPago = async (pagoId) => {
-    if(!confirm("¿Aprobar pago?")) return;
-    try {
-        toast.info("Procesando...");
-        await pagosService.updateEstado(pagoId, 'Completado');
-        toast.success("Aprobado");
-        window.location.reload(); 
-    } catch (error) {
-        toast.error("Error al procesar");
-    }
+  // --- ACCIONES ---
+  
+  
+  const handleAprobarClick = (pago) => {
+    setModalAprobar({ isOpen: true, pago });
   };
 
   const handleRechazarPago = async (pagoId) => {
-    if(!confirm("¿Rechazar pago?")) return;
+    if(!confirm("¿Rechazar este comprobante? El usuario deberá subirlo de nuevo.")) return;
     try {
         await pagosService.updateEstado(pagoId, 'Rechazado');
-        toast.error("Rechazado");
+        toast.error("Pago rechazado");
         window.location.reload(); 
     } catch (error) {
         toast.error("Error al procesar");
     }
   };
 
-  const handleSubirComprobante = (pago) => {
-    setModalSubida({ isOpen: true, pago });
+  const handlePagar = (pago) => {
+    setModalAbonos({ isOpen: true, pago });
   };
 
-  const handleUploadSuccess = () => {
-    setModalSubida({ isOpen: false, pago: null });
+  const handleSuccess = () => {
+    setModalAbonos({ isOpen: false, pago: null });
+    setModalAprobar({ isOpen: false, pago: null });
     window.location.reload();
   };
 
@@ -90,7 +111,7 @@ const PagosTab = ({
 
   return (
     <>
-      {/* --- ENCABEZADO AZUL OSCURO (RESTAURADO) --- */}
+      {/* ENCABEZADO AZUL */}
       <div className="bg-aneupi-primary text-white p-7 border-b border-aneupi-primary-dark">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-8">
           <div>
@@ -100,50 +121,57 @@ const PagosTab = ({
             <p className="text-white/80 flex items-center gap-2">
               <FaDatabase className="text-sm" /> 
               {esAdmin 
-                ? "Administra, aprueba o rechaza los reportes de pago." 
-                : "Control de pagos (Base de Datos PostgreSQL)."}
+                ? "Verifica comprobantes y valida abonos." 
+                : "Realiza abonos parciales o pagos totales."}
             </p>
           </div>
           
-          {/* FILTROS CON ESTILO TRANSPARENTE/BLANCO */}
-          <div className="flex gap-4">
-             <div className="relative">
-                <select 
-                  value={selectedYearPagos} 
-                  onChange={(e) => setSelectedYearPagos(e.target.value)} 
-                  className="bg-white/20 border border-white/30 text-white text-sm rounded-lg block w-40 p-2.5 focus:outline-none focus:bg-white/30 cursor-pointer"
-                >
-                  <option value="Todos" className="text-black">Año: Todos</option>
-                  {anios.map(anio => <option key={anio} value={anio} className="text-black">{anio}</option>)}
-                </select>
-                <FaCalendarAlt className="absolute right-3 top-3 text-white/70 text-xs pointer-events-none"/>
+          <div className="flex flex-col md:flex-row gap-4 items-end md:items-center">
+             {/* BUSCADOR */}
+             <div className="relative w-full md:w-64">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <FaSearch className="text-white/50" />
+                </div>
+                <input
+                    type="text"
+                    className="bg-white/20 border border-white/30 text-white text-sm rounded-lg focus:ring-white focus:border-white block w-full pl-10 p-2.5 placeholder-white/60 outline-none transition-all hover:bg-white/30"
+                    placeholder={esAdmin ? "Buscar por nombre..." : "Buscar referencia..."}
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                />
              </div>
-             <div className="relative">
-                <select 
-                  value={selectedMonth} 
-                  onChange={(e) => setSelectedMonth(e.target.value)} 
-                  className="bg-white/20 border border-white/30 text-white text-sm rounded-lg block w-40 p-2.5 focus:outline-none focus:bg-white/30 cursor-pointer"
-                >
-                  <option value="Todos" className="text-black">Mes: Todos</option>
-                  {meses.map(mes => <option key={mes} value={mes} className="text-black">{mes}</option>)}
-                </select>
-                <FaCalendarAlt className="absolute right-3 top-3 text-white/70 text-xs pointer-events-none"/>
+
+             {/* FILTROS */}
+             <div className="flex gap-4">
+                 <div className="relative">
+                    <select value={selectedYearPagos} onChange={(e) => setSelectedYearPagos(e.target.value)} className="bg-white/20 border border-white/30 text-white text-sm rounded-lg block w-32 p-2.5 focus:outline-none focus:bg-white/30 cursor-pointer appearance-none">
+                      <option value="Todos" className="text-black">Año: Todos</option>
+                      {anios.map(anio => <option key={anio} value={anio} className="text-black">{anio}</option>)}
+                    </select>
+                    <FaCalendarAlt className="absolute right-3 top-3 text-white/70 text-xs pointer-events-none"/>
+                 </div>
+                 <div className="relative">
+                    <select value={selectedMonth} onChange={(e) => setSelectedMonth(e.target.value)} className="bg-white/20 border border-white/30 text-white text-sm rounded-lg block w-32 p-2.5 focus:outline-none focus:bg-white/30 cursor-pointer appearance-none">
+                      <option value="Todos" className="text-black">Mes: Todos</option>
+                      {meses.map(mes => <option key={mes} value={mes} className="text-black">{mes}</option>)}
+                    </select>
+                    <FaCalendarAlt className="absolute right-3 top-3 text-white/70 text-xs pointer-events-none"/>
+                 </div>
              </div>
           </div>
         </div>
       </div>
 
-      {/* --- TABLA DE DATOS --- */}
+      {/* TABLA DE DATOS */}
       <div className="overflow-x-auto min-h-[400px] bg-white shadow-sm">
         <table className="w-full text-sm text-left">
-          {/* Cabecera de la tabla en gris claro para contraste profesional */}
           <thead className="text-xs text-aneupi-primary uppercase bg-gray-100 border-b border-gray-200">
             <tr>
               <th className="px-6 py-4 font-bold">ID</th>
               <th className="px-6 py-4 font-bold">{esAdmin ? "Accionista" : "Concepto"}</th>
               <th className="px-6 py-4 font-bold">Fecha</th>
               <th className="px-6 py-4 font-bold">Estado</th>
-              <th className="px-6 py-4 font-bold">Monto</th>
+              <th className="px-6 py-4 font-bold text-right">Saldo Pendiente</th>
               <th className="px-6 py-4 font-bold text-center">Evidencia</th>
               <th className="px-6 py-4 font-bold text-center">Acciones</th>
             </tr>
@@ -164,32 +192,47 @@ const PagosTab = ({
                   {new Date(pago.fechaRegistro || pago.fechaIngresoMulta).toLocaleDateString()}
                 </td>
                 <td className="px-6 py-4">{renderEstado(pago.estado)}</td>
-                <td className="px-6 py-4 font-bold text-gray-800">${Number(pago.monto).toFixed(2)}</td>
                 
-                {/* COLUMNA EVIDENCIA (BOTÓN AZUL CLARO) */}
+                <td className="px-6 py-4 font-bold text-gray-800 text-right">
+                    ${Number(pago.monto).toFixed(2)}
+                </td>
+                
+                {/* EVIDENCIA: DESCARGAR */}
                 <td className="px-6 py-4 text-center">
                    {pago.comprobante ? (
-                      <button 
-                        onClick={() => verComprobante(pago.comprobante)}
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 text-blue-600 rounded-lg text-xs font-bold hover:bg-blue-100 transition-colors border border-blue-200"
-                      >
-                        <FaEye /> Ver Foto
-                      </button>
+                      <div className="flex justify-center gap-2">
+                          <button 
+                            onClick={() => descargarComprobante(pago.comprobante, pago.id)}
+                            className="inline-flex items-center gap-1 px-3 py-1.5 bg-blue-50 text-blue-600 rounded-lg text-xs font-bold hover:bg-blue-100 transition-colors border border-blue-200"
+                            title="Descargar para revisar"
+                          >
+                            <FaDownload /> Descargar
+                          </button>
+                      </div>
                    ) : (
                       <span className="text-gray-400 text-xs italic bg-gray-100 px-2 py-1 rounded">Sin archivo</span>
                    )}
                 </td>
 
+                {/* ACCIONES */}
                 <td className="px-6 py-4 text-center">
                   <div className="flex justify-center items-center gap-2">
                     
                     {/* ADMIN: APROBAR / RECHAZAR */}
                     {esAdmin && (pago.estado === "Pendiente" || pago.estado === "En_proceso") && (
                         <>
-                            <button onClick={() => handleAprobarPago(pago.id)} className="flex items-center gap-1 px-3 py-1.5 bg-white border border-green-500 text-green-600 rounded hover:bg-green-50 text-xs font-bold shadow-sm transition-all" title="Aprobar">
+                            <button 
+                                onClick={() => handleAprobarClick(pago)} // Abre el nuevo Modal
+                                className="flex items-center gap-1 px-3 py-1.5 bg-white border border-green-500 text-green-600 rounded hover:bg-green-50 text-xs font-bold shadow-sm transition-all" 
+                                title="Validar monto y aprobar"
+                            >
                                 <FaCheck /> Aprobar
                             </button>
-                            <button onClick={() => handleRechazarPago(pago.id)} className="flex items-center gap-1 px-3 py-1.5 bg-white border border-red-500 text-red-600 rounded hover:bg-red-50 text-xs font-bold shadow-sm transition-all" title="Rechazar">
+                            <button 
+                                onClick={() => handleRechazarPago(pago.id)} 
+                                className="flex items-center gap-1 px-3 py-1.5 bg-white border border-red-500 text-red-600 rounded hover:bg-red-50 text-xs font-bold shadow-sm transition-all" 
+                                title="Rechazar"
+                            >
                                 <FaTimes /> Rechazar
                             </button>
                         </>
@@ -198,10 +241,10 @@ const PagosTab = ({
                     {/* USUARIO: PAGAR */}
                     {!esAdmin && (pago.estado === "Pendiente" || pago.estado === "Rechazado") && (
                         <button 
-                            onClick={() => handleSubirComprobante(pago)}
+                            onClick={() => handlePagar(pago)} 
                             className="flex items-center gap-2 px-4 py-2 bg-aneupi-primary text-white rounded-lg text-xs font-bold hover:bg-aneupi-primary-dark shadow-md transform hover:-translate-y-0.5 transition-all"
                         >
-                            <FaFileUpload /> {pago.estado === "Rechazado" ? "Reintentar" : "Pagar"}
+                            <FaFileUpload /> {pago.estado === "Rechazado" ? "Reintentar" : "Pagar / Abonar"}
                         </button>
                     )}
                   </div>
@@ -235,18 +278,29 @@ const PagosTab = ({
         calcularTotalPagosFiltrados={() => totalMontoFiltrado}
       />
 
-      <AbonosModal
+      {/* MODALES */}
+      
+      {/* Modal para el Usuario (Subir Comprobante) */}
+      <AbonosModal 
         isOpen={modalAbonos.isOpen}
-        onClose={() => setModalAbonos({ isOpen: false, multa: null, abonos: [] })}
-        multa={modalAbonos.multa}
-        abonos={modalAbonos.abonos}
+        onClose={() => setModalAbonos({ isOpen: false, pago: null })}
+        pago={modalAbonos.pago}
+        onUploadSuccess={handleSuccess}
+      />
+
+      {/* Modal para el Admin (Aprobar Abono) */}
+      <AprobarAbonoModal 
+        isOpen={modalAprobar.isOpen}
+        onClose={() => setModalAprobar({ isOpen: false, pago: null })}
+        pago={modalAprobar.pago}
+        onSuccess={handleSuccess}
       />
 
       <SubirComprobanteModal 
         isOpen={modalSubida.isOpen}
         onClose={() => setModalSubida({ isOpen: false, pago: null })}
         pago={modalSubida.pago}
-        onUploadSuccess={handleUploadSuccess}
+        onUploadSuccess={handleSuccess}
       />
     </>
   );
